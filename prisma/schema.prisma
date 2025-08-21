@@ -1,0 +1,51 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// 1. Настройки генератора и подключения
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // Prisma возьмет строку подключения из нашего .env файла
+}
+
+// 2. Модель Пользователя (User)
+// Здесь мы будем хранить информацию о наших пользователях.
+model User {
+  id              String    @id @default(cuid()) // Уникальный ID пользователя
+  email           String    @unique // Email должен быть уникальным
+  name            String?   // Имя пользователя (необязательное)
+  hashedPassword  String?   // Хэш пароля (необязательно, если вход через Google)
+  
+  // Баланс токенов для генерации
+  tokenBalance    Int       @default(10) // Даем 10 бесплатных токенов при регистрации
+
+  // Информация для платежей через Stripe
+  stripeCustomerId String?   @unique // ID клиента в Stripe
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Связь: один пользователь может иметь много планов питания
+  mealPlans       MealPlan[]
+}
+
+
+// 3. Модель Плана Питания (MealPlan)
+// Здесь будут храниться сгенерированные планы.
+model MealPlan {
+  id              String    @id @default(cuid()) // Уникальный ID плана
+  
+  // Содержимое всего плана мы будем хранить в формате JSON.
+  // Это очень гибко и идеально для начала.
+  // Внутри этого JSON будет лежать массив дней, рецептов и т.д.
+  content         Json
+
+  createdAt       DateTime  @default(now())
+
+  // Связь: этот план принадлежит одному конкретному пользователю
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

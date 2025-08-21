@@ -1,0 +1,35 @@
+export type Macro = {
+  protein: number;
+  fat: number;
+  carbs: number;
+};
+
+export type Recipe = {
+  id: string;
+  title: string;
+  kcal: number;
+  macro: Macro;
+  time: string; // e.g., "15–20 min"
+  portion: string; // e.g., "1 bowl (320 g)"
+  allergens?: string[];
+  tags?: string[];
+  image?: string;
+};
+
+export type Meal = {
+  id: string;
+  slot: "Breakfast" | "Lunch" | "Dinner" | "Snack";
+  title: string;
+  kcal: number;
+  macro: Macro;
+  time: string;
+  portion: string;
+  allergens?: string[];
+};
+
+export type ShoppingItem = {
+  name: string;
+  qty: number;
+  unit: string;
+  category: string;
+};

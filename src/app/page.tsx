@@ -18,6 +18,18 @@ import { StaggeredFadeIn, itemVariants } from "@/components/ui/StaggeredFadeIn";
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { GeneratorPanel } from '@/components/shared/GeneratorPanel';
 
+interface MealDetail {
+  title: string;
+  kcal: number; 
+}
+
+interface DayPlan {
+  breakfast: MealDetail;
+  lunch: MealDetail;
+  dinner: MealDetail;
+  snacks?: MealDetail[];
+}
+
 // --- Типы и Данные ---
 // Эти типы и константы следует вынести в соответствующие файлы, но пока оставим как есть.
 type Currency = 'EUR' | 'GBP';
@@ -171,6 +183,14 @@ export default function HomePage() {
   const [authMode, setAuthMode] = useState<"login" | "signup" | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
+    interface GeneratorFormData {
+    freeText: string;
+    days: number;
+    goals: object;
+    structure: object;
+    diet: object;
+  }
+
   // Updated function to accept formData from the child component
   const handleGenerate = async (formData: any) => {
     setLoading(true);
@@ -193,7 +213,7 @@ export default function HomePage() {
         return;
       }
 
-      const generatedPlan = await response.json();
+      const generatedPlan = await response.json() as Record<string, DayPlan>;
       console.log("Received plan from AI:", generatedPlan);
 
       const firstDayKey = Object.keys(generatedPlan)[0];
@@ -202,11 +222,12 @@ export default function HomePage() {
       }
       const firstDayMeals = generatedPlan[firstDayKey];
 
-      const formattedPreview = Object.entries(firstDayMeals).map(([mealType, mealDetails]: [string, any], index) => ({
+      // ★ Теперь TypeScript знает точную структуру mealDetails, и ошибки исчезнут
+      const formattedPreview = Object.entries(firstDayMeals).map(([mealType, mealDetails], index) => ({
         id: `ai-${mealType}-${index}`,
         title: mealDetails.title,
-        kcal: parseInt(mealDetails.kcal, 10) || 0,
-        macro: { protein: 0, fat: 0, carbs: 0 }, // Macros can be added later if returned by AI
+        kcal: mealDetails.kcal || 0, // AI возвращает число, parseInt не нужен
+        macro: { protein: 0, fat: 0, carbs: 0 },
         time: "AI",
         portion: "Generated",
       }));

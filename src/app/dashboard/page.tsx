@@ -86,7 +86,7 @@ export default function DashboardPage() {
             <svg className="size-4 text-neutral-slate" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search plans…" className="w-full bg-transparent outline-none text-sm" />
           </div>
-          <Dropdown label="Status" value={status} options={["All", "Active", "Draft", "Archived"]} onChange={(v) => setStatus(v as any)} />
+          <Dropdown label="Status" value={status} options={["All", "Active", "Draft", "Archived"]} onChange={(v) => setStatus(v as "All" | "Active" | "Draft" | "Archived")} />
           <Dropdown label="Diet" value={diet} options={["All", "Mediterranean", "Gluten‑free", "High protein", "Budget", "Vegetarian", "≤20 min"]} onChange={setDiet} />
         </motion.div>
         

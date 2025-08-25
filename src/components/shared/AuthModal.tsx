@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 
@@ -41,44 +41,33 @@ export function AuthModal({ open, mode, onClose }: AuthModalProps) {
     if (mode === 'signup') {
       try {
         await axios.post('/api/register', { email, password, firstName, lastName });
-
-        // После успешной регистрации, автоматически логиним пользователя
-        const result = await signIn('credentials', {
-          email,
-          password,
-          redirect: false, // Мы управляем результатом сами
-        });
-
+        const result = await signIn('credentials', { email, password, redirect: false });
         if (result?.ok) {
-          window.location.href = '/dashboard'; // ★★★ Ведем на дашборд 
+          window.location.href = '/dashboard';
         } else {
-          // Если что-то пошло не так на этапе входа после регистрации
-          setErrors({ api: "Registration successful, but login failed. Please try logging in manually." });
+          setErrors({ api: "Registration successful, but login failed." });
         }
-      } catch (error: any) {
-        // Обрабатываем ошибки от нашего API (например, "Email already exists")
-        const errorMessage = error.response?.data || "An unexpected error occurred.";
-        setErrors({ api: errorMessage });
+      // ★ Исправлен тип 'error' и добавлена проверка
+      } catch (error) {
+        if (error instanceof AxiosError && error.response) {
+          setErrors({ api: error.response.data as string });
+        } else {
+          setErrors({ api: "An unexpected error occurred." });
+        }
       }
     }
 
     // --- Логика для ВХОДА ---
     if (mode === 'login') {
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false, // Оставляем false, чтобы обработать ошибку здесь
-      });
-
-      if (result?.ok && !result.error) {
-        window.location.href = '/dashboard'; // ★★★ Ведем на дашборд
-      } else {
-        setErrors({ api: "Invalid email or password." });
+        const result = await signIn('credentials', { email, password, redirect: false });
+        if (result?.ok && !result.error) {
+          window.location.href = '/dashboard';
+        } else {
+          setErrors({ api: "Invalid email or password." });
+        }
       }
-    }
-
-    setLoading(false);
-  };
+      setLoading(false);
+    };
 
   if (!open) return null;
 

@@ -17,7 +17,7 @@ interface GenerateApiRequest {
   structure: object;
   diet: {
     types: string[];
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 

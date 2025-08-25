@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     const { currency, planId, customAmount } = body;
     const origin = process.env.NEXT_PUBLIC_BASE_URL || 'https://shapeai.co.uk';
     
-    let line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+    const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = []
 
     if (planId && TOP_UP_PRICES[planId]) {
       // --- Fixed Plan Logic ---

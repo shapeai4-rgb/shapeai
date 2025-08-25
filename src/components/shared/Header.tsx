@@ -54,9 +54,9 @@ export function Header() {
             ) : (
               // ★★★ Навигация для ГОСТЯ
               <>
-                <a href="/#how" className="transition-colors hover:text-neutral-ink">How it works</a>
-                <a href="/#topup" className="transition-colors hover:text-neutral-ink">Pricing</a>
-                <a href="/#faq" className="transition-colors hover:text-neutral-ink">FAQ</a>
+                <Link href="/#how" className="transition-colors hover:text-neutral-ink">How it works</Link>
+                <Link href="/#topup" className="transition-colors hover:text-neutral-ink">Pricing</Link>
+                <Link href="/#faq" className="transition-colors hover:text-neutral-ink">FAQ</Link>
                 <div className="inline-flex rounded-full bg-neutral-lines/50 p-1">
                   {(['EUR','GBP'] as Currency[]).map(cur => (
                     <button key={cur} onClick={()=>setCurrency(cur)} className={cn("rounded-full px-2.5 py-1 text-xs", currency===cur ? "bg-white shadow font-semibold text-neutral-ink" : "hover:text-neutral-ink")}>

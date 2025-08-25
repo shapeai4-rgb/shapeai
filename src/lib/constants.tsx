@@ -214,3 +214,9 @@ export const TOP_UP_PRICES = {
   standard: { eur: 1900, gbp: 1600 },
   pro: { eur: 4900, gbp: 4200 },
 };
+
+export const TOKENS_FOR_PLAN = {
+  lite: 90,
+  standard: 210,
+  pro: 600,
+};

@@ -89,7 +89,8 @@ export async function POST(request: Request) {
       cancel_url: `${origin}/top-up?payment_cancelled=true`,
       metadata: {
         userId: userId,
-      }
+      },
+      expand: ['line_items'],
     });
 
     if (!checkoutSession.url) {

@@ -1,149 +1,137 @@
 'use client';
 
 import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { useSession } from "next-auth/react";
+import { cn } from "@/lib/utils";
+import { useAppStore } from "@/lib/store";
+import axios from 'axios';
 
-// Top‑up — standalone page
-// TailwindCSS required. Export: default React component.
-// Features:
-// - Currency switcher (EUR/GBP) in header
-// - 3 fixed packs + 1 custom amount (2 decimals, dot or comma)
-// - "Sign in to Top‑up" note on each card
-// - Summary of last selection (client-side)
+// --- Компоненты ---
+import { Button } from "@/components/ui/Button";
+import { StaggeredFadeIn, itemVariants } from "@/components/ui/StaggeredFadeIn";
+import { AnimatedCard } from "@/components/ui/AnimatedCard";
+import { AuthModal } from "@/components/shared/AuthModal";
 
-function cx(...classes: Array<string | false | undefined>) {
-  return classes.filter(Boolean).join(" ");
-}
-
-// Types
- type TopUpPlan = {
+// --- Типы и Данные ---
+type Currency = 'EUR' | 'GBP';
+type TopUpPlan = {
   id: string;
   name: string;
-  priceEUR?: number; // fixed price; undefined for custom
+  priceEUR?: number;
   tokens?: number;
-  bonus?: string; // e.g., "+10%"
+  bonus?: string;
   popular?: boolean;
   custom?: boolean;
- };
- type Currency = 'EUR' | 'GBP';
+};
 
-// Data
- const PLANS: TopUpPlan[] = [
+const TOPUP_PLANS: TopUpPlan[] = [
   { id: "lite", name: "Lite", priceEUR: 9, tokens: 90 },
   { id: "standard", name: "Standard", priceEUR: 19, tokens: 210, bonus: "+10%", popular: true },
   { id: "pro", name: "Pro", priceEUR: 49, tokens: 600, bonus: "+20%" },
   { id: "custom", name: "Custom", custom: true },
- ];
+];
 
-// Currency helpers (indicative FX)
- const FX_EUR_GBP = 0.85;
- function convertEUR(amountEUR: number, to: Currency) {
-  return to === 'EUR' ? amountEUR : amountEUR * FX_EUR_GBP;
- }
- function formatCurrency(cur: Currency, amount: number, opts: { trimCents?: boolean } = {}) {
-  const symbol = cur === 'EUR' ? '€' : '£';
-  const value = opts.trimCents ? amount.toFixed(0) : amount.toFixed(2);
-  return `${symbol}${value}`;
- }
+// --- Вспомогательные функции ---
+const FX_EUR_GBP = 0.85;
+function formatCurrency(cur: Currency, amount: number, opts: { trimCents?: boolean } = {}) { const symbol = cur === 'EUR' ? '€' : '£'; const value = opts.trimCents ? amount.toFixed(0) : amount.toFixed(2); return `${symbol}${value}`; }
+function convertEUR(amountEUR: number, to: Currency) { return to === 'EUR' ? amountEUR : amountEUR * FX_EUR_GBP; }
+function isValidAmount(input: string) { const trimmed = input.trim(); if (!trimmed) return false; return /^\d+(?:[\.,]\d{1,2})?$/.test(trimmed); }
+function normalizeAmount(input: string) { return input.replace(',', '.'); }
 
-// Validation
- function isValidAmount(input: string) {
-  const trimmed = input.trim();
-  if (!trimmed) return false;
-  return /^\d+(?:[\.,]\d{1,2})?$/.test(trimmed);
- }
- function normalizeAmount(input: string) { return input.replace(',', '.'); }
-
-function Card({ plan, currency, onSelect }: { plan: TopUpPlan; currency: Currency; onSelect: (sel: { amount: number; currency: Currency } | null) => void }) {
-  const [amount, setAmount] = useState('');
-  const valid = plan.custom ? isValidAmount(amount) : true;
-  const price = plan.custom ? (valid ? Number(normalizeAmount(amount)) : null) : (plan.priceEUR != null ? convertEUR(plan.priceEUR, currency) : null);
+// --- Компонент TopUpCard (теперь с рабочей логикой) ---
+function TopUpCard({ plan, onSelect, isLoggedIn }: { plan: TopUpPlan; onSelect: () => void; isLoggedIn: boolean; }) {
+  const [amount, setAmount] = useState<string>("");
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const currency = useAppStore((state) => state.currency);
   const symbol = currency === 'EUR' ? '€' : '£';
+  const valid = plan.custom ? isValidAmount(amount) : true;
+  const priceInSelected = plan.custom ? (valid ? Number(normalizeAmount(amount)) : null) : (plan.priceEUR != null ? convertEUR(plan.priceEUR, currency) : null);
+
+  const handleCheckout = async () => {
+    if (!isLoggedIn) {
+      onSelect();
+      return;
+    }
+    setIsRedirecting(true);
+    try {
+      const lowerCaseCurrency = currency.toLowerCase();
+      const requestBody = plan.custom
+        ? { customAmount: Math.round(Number(normalizeAmount(amount)) * 100), currency: lowerCaseCurrency }
+        : { planId: plan.id, currency: lowerCaseCurrency };
+      
+      if (plan.custom && !valid) {
+        alert("Please enter a valid amount.");
+        setIsRedirecting(false);
+        return;
+      }
+
+      const { data } = await axios.post('/api/checkout-sessions', requestBody);
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error("Checkout failed:", error);
+      alert("An error occurred. Please try again.");
+      setIsRedirecting(false);
+    }
+  };
 
   return (
-    <article className={cx('relative rounded-2xl border p-5 shadow-sm', plan.popular ? 'border-emerald-300 bg-emerald-50' : 'border-gray-200 bg-white')}>
-      {plan.popular && <div className="absolute -top-2 right-4 rounded-full bg-emerald-600 px-2 py-0.5 text-xs text-white">Most popular</div>}
-      <div className="flex items-baseline justify-between">
-        <h3 className="text-base font-semibold">{plan.name}</h3>
-        {plan.bonus && <span className="text-xs text-emerald-700">{plan.bonus}</span>}
-      </div>
-      {plan.custom ? (
-        <div className="mt-2">
-          <label className="text-xs text-gray-600">Amount ({symbol})</label>
-          <input
-            inputMode="decimal"
-            pattern="^\\d+(?:[\\.,]\\d{1,2})?$"
-            placeholder={symbol + ' 12.50'}
-            value={amount}
-            onChange={(e)=>setAmount(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none ring-emerald-200 focus:ring-2"
-          />
-          <p className={cx('mt-1 text-xs', valid ? 'text-gray-500' : 'text-red-600')}>{valid ? 'Up to 2 decimals (dot or comma).' : 'Please enter a valid amount (e.g. 9, 9.9, 9.99).'}</p>
+    <AnimatedCard>
+      <article className={cn("relative rounded-card border p-5 shadow-soft h-full", plan.popular ? "border-accent bg-accent/10" : "border-neutral-lines bg-white")}>
+        {plan.popular && <div className="absolute -top-2 right-4 rounded-full bg-accent px-2 py-0.5 text-xs text-white">Most popular</div>}
+        <div className="flex items-baseline justify-between">
+          <h3 className="font-headings text-base font-semibold">{plan.name}</h3>
+          {plan.bonus && <span className="text-xs text-accent">{plan.bonus}</span>}
         </div>
-      ) : (
-        <div className="mt-2 text-2xl font-semibold">{formatCurrency(currency, Number(price?.toFixed(0) ?? 0), { trimCents: true })}</div>
-      )}
-      {plan.tokens && <div className="mt-1 text-xs text-gray-600">≈ {plan.tokens.toLocaleString()} tokens</div>}
-      <div className="mt-4 text-xs text-gray-600">Sign in to Top‑up</div>
-      <a href="#" onClick={(e)=>{ e.preventDefault(); if(price==null){ onSelect(null); } else { onSelect({ amount: Number(price.toFixed(2)), currency }); } }}
-         className={cx('mt-2 inline-flex w-full items-center justify-center rounded-xl px-4 py-2 text-sm font-medium', plan.custom ? (valid ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed') : 'bg-emerald-600 text-white hover:bg-emerald-700')}
-         aria-disabled={plan.custom && !valid}>
-        {plan.custom ? 'Continue' : `Top‑up ${formatCurrency(currency, Number(price?.toFixed(0) ?? 0), { trimCents: true })}`}
-      </a>
-    </article>
+        {plan.custom ? (
+          <div className="mt-2">
+            <label className="text-xs text-neutral-slate">Amount ({symbol})</label>
+            <input inputMode="decimal" placeholder={symbol + " 12.50"} value={amount} onChange={(e) => setAmount(e.target.value)} className="mt-1 w-full rounded-xl border border-neutral-lines px-3 py-2 text-sm outline-none ring-accent/50 focus:ring-2" />
+            <p className={cn("mt-1 text-xs", valid ? "text-neutral-slate/80" : "text-status-danger")}>{valid ? "Up to 2 decimals (dot or comma)." : "Please enter a valid amount."}</p>
+          </div>
+        ) : (
+          <div className="mt-2 text-2xl font-headings font-semibold">{formatCurrency(currency, Number(priceInSelected?.toFixed(0) ?? 0), { trimCents: true })}</div>
+        )}
+        {plan.tokens && <div className="mt-1 text-xs text-neutral-slate">≈ {plan.tokens.toLocaleString()} tokens</div>}
+        <div className="mt-4 text-xs text-neutral-slate">
+          {isLoggedIn ? 'Proceed to checkout' : 'Sign in to Top-up'}
+        </div>
+        <Button onClick={handleCheckout} locked={plan.custom && !valid} disabled={isRedirecting} className="w-full mt-2 text-sm py-2">
+          {isRedirecting ? 'Redirecting...' : (isLoggedIn ? `Top‑up ${formatCurrency(currency, Number(priceInSelected?.toFixed(0) ?? 0), { trimCents: true })}` : 'Sign up to Top-up')}
+        </Button>
+      </article>
+    </AnimatedCard>
   );
 }
 
+// --- Главный компонент страницы ---
 export default function TopUpPage() {
-  const [currency, setCurrency] = useState<Currency>('EUR');
-  const [last, setLast] = useState<{ amount: number; currency: Currency } | null>(null);
+  const { status } = useSession();
+  const isLoggedIn = status === 'authenticated';
+  const [authMode, setAuthMode] = useState<"login" | "signup" | null>(null);
 
   return (
-    <main className="relative text-gray-900">
-      {/* Pricing grid */}
-      <section className="mx-auto max-w-7xl px-4 py-10">
-        <div className="rounded-3xl border border-gray-200 bg-white p-6 md:p-8 shadow-sm">
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <h1 className="text-xl md:text-2xl font-semibold">Top‑up tokens</h1>
-              <p className="mt-1 text-sm text-gray-600">Select a pack or enter your own amount. You need to sign in to complete the purchase.</p>
-            </div>
-            {last && <div className="text-xs text-gray-600">Last selected: {formatCurrency(last.currency, last.amount)}</div>}
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-            {PLANS.map(p => (
-              <Card key={p.id} plan={p} currency={currency} onSelect={setLast} />
+    <>
+      <main className="mx-auto max-w-7xl px-4 py-12 md:py-20">
+        <StaggeredFadeIn>
+          <motion.div variants={itemVariants} className="text-center">
+            <h1 className="text-3xl/tight md:text-5xl/tight font-headings font-semibold tracking-tight">
+              Top-up tokens
+            </h1>
+            <p className="mt-4 max-w-2xl mx-auto text-neutral-slate md:text-lg">
+              Choose a pack or enter a custom amount. You need to sign in to complete the purchase.
+            </p>
+          </motion.div>
+          <motion.div variants={itemVariants} className="mt-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
+            {TOPUP_PLANS.map((p) => (
+              <TopUpCard key={p.id} plan={p} onSelect={() => setAuthMode("signup")} isLoggedIn={isLoggedIn} />
             ))}
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div className="rounded-xl border border-gray-200 p-4">
-              <div className="font-medium">How it works</div>
-              <p className="mt-2 text-gray-600">Choose a pack, sign in, and complete payment. Tokens appear instantly in your account and are used for plan generation and exports.</p>
-            </div>
-            <div className="rounded-xl border border-gray-200 p-4">
-              <div className="font-medium">Refunds</div>
-              <p className="mt-2 text-gray-600">If you made a purchase by mistake, contact support within 14 days and we’ll help. Unused tokens are refundable.</p>
-            </div>
-            <div className="rounded-xl border border-gray-200 p-4">
-              <div className="font-medium">Taxes & FX</div>
-              <p className="mt-2 text-gray-600">Prices include applicable VAT. FX rates are indicative; final total is shown at checkout.</p>
-            </div>
-          </div>
-
-          <div className="mt-4 text-xs text-gray-500">By topping up, you agree to our Terms and Privacy Policy.</div>
-        </div>
-      </section>
-    </main>
+          </motion.div>
+        </StaggeredFadeIn>
+      </main>
+      <AuthModal open={authMode !== null} mode={authMode || "signup"} onClose={() => setAuthMode(null)} />
+    </>
   );
 }
-
-// Dev sanity tests
-(function __devTests(){
-  try {
-    const ok = ['9','9.9','9.99','9,99'];
-    const bad = ['','a','9.999'];
-    ok.forEach(x=>{ if(!/^\d+(?:[\.,]\d{1,2})?$/.test(x)) throw new Error('valid amount failed '+x); });
-    bad.forEach(x=>{ if(/^\d+(?:[\.,]\d{1,2})?$/.test(x)) throw new Error('invalid amount passed '+x); });
-  } catch(e) { console.warn('[TopUp tests]', e); }
-})();

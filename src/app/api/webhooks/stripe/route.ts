@@ -42,6 +42,11 @@ export async function POST(request: Request) {
       return new NextResponse('Line item not found.', { status: 400 });
     }
 
+    // ★★★ НАЧАЛО БЛОКА ДЛЯ ОТЛАДКИ ★★★
+    console.log(`[WEBHOOK] Processing for userId: ${userId}`);
+    console.log(`[WEBHOOK] Line item description: "${lineItem.description}"`);
+    // ★★★ КОНЕЦ БЛОКА ДЛЯ ОТЛАДКИ ★★★
+
     let tokensToAdd = 0;
 
     if (lineItem.description?.includes('Custom Amount')) {
@@ -59,13 +64,22 @@ export async function POST(request: Request) {
         p => lineItem.description?.toLowerCase().includes(p)
       ) as keyof typeof TOKENS_FOR_PLAN | undefined;
 
+      // ★★★ НАЧАЛО БЛОКА ДЛЯ ОТЛАДКИ ★★★
+      console.log(`[WEBHOOK] Matched planId: "${planId}"`);
+      // ★★★ КОНЕЦ БЛОКА ДЛЯ ОТЛАДКИ ★★★
+
       if (planId && TOKENS_FOR_PLAN[planId]) {
         tokensToAdd = TOKENS_FOR_PLAN[planId];
       }
     }
+
+    // ★★★ НАЧАЛО БЛОКА ДЛЯ ОТЛАДКИ ★★★
+    console.log(`[WEBHOOK] Calculated tokensToAdd: ${tokensToAdd}`);
+    // ★★★ КОНЕЦ БЛОКА ДЛЯ ОТЛАДКИ ★★★
     
     if (tokensToAdd > 0) {
       try {
+        console.log('[WEBHOOK] Attempting to update user token balance...');
         await prisma.user.update({
           where: { id: userId },
           data: { tokenBalance: { increment: tokensToAdd } },

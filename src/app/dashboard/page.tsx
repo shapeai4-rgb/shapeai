@@ -1,8 +1,10 @@
 'use client';
-import React, { useMemo, useState } from "react";
+
+import React, { useMemo, useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import type { Plan } from "@/types";
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 // --- Компоненты ---
 import { Button } from "@/components/ui/Button";
@@ -13,11 +15,9 @@ import { StaggeredFadeIn, itemVariants } from "@/components/ui/StaggeredFadeIn";
 import { motion } from "framer-motion";
 
 // --- Вспомогательный компонент TokenPill ---
-// (Он останется здесь, так как используется только в Дашборде)
 function TokenPill({ balance }: { balance: number }) {
-  // В будущем used/total тоже придут из сессии или API
   const used = 0;
-  const total = 200; // Месячный лимит по умолчанию
+  const total = 200;
   const pct = Math.min(100, Math.round((used / Math.max(1, total)) * 100));
 
   return (
@@ -40,26 +40,39 @@ function TokenPill({ balance }: { balance: number }) {
 
 // --- Главный компонент страницы Дашборда ---
 export default function DashboardPage() {
-  const { data: session } = useSession();
+  const { data: session, status, update } = useSession(); // 'status' от сессии
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
-  // ★★★ 1. Начальное состояние планов - ПУСТОЙ МАССИВ ★★★
   const [plans] = useState<Plan[]>([]);
-
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<"All" | "Active" | "Draft" | "Archived">("All");
+  // ★★★ ПЕРЕИМЕНОВАНО, ЧТОБЫ ИЗБЕЖАТЬ КОНФЛИКТА ★★★
+  const [filterStatus, setFilterStatus] = useState<"All" | "Active" | "Draft" | "Archived">("All");
   const [diet, setDiet] = useState<string>("All");
   const [shopFor, setShopFor] = useState<Plan | null>(null);
 
-  // useMemo теперь работает с состоянием 'plans', а не с MOCK_PLANS
+  useEffect(() => {
+    if (searchParams.get('payment_success') === 'true') {
+      update();
+      const newPath = window.location.pathname;
+      router.replace(newPath, { scroll: false });
+    }
+  }, [searchParams, update, router]);
+
   const filteredPlans = useMemo(() => {
     return plans
-      .filter((p) => status === "All" || p.status === status)
+      // ★★★ ИСПОЛЬЗУЕМ ПЕРЕИМЕНОВАННУЮ ПЕРЕМЕННУЮ ★★★
+      .filter((p) => filterStatus === "All" || p.status === filterStatus)
       .filter((p) => diet === "All" || p.dietTags.includes(diet))
       .filter((p) => query.trim() === "" || p.title.toLowerCase().includes(query.toLowerCase()));
-  }, [plans, query, status, diet]);
+  }, [plans, query, filterStatus, diet]); // ★★★ ОБНОВЛЕНО ЗДЕСЬ ★★★
+
+  // Пока сессия грузится, показываем заглушку
+  if (status === 'loading') {
+    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+  }
 
   return (
-    // ★★★ Обертка <main> удалена, так как она теперь в layout.tsx ★★★
     <StaggeredFadeIn>
       <section className="mx-auto max-w-7xl px-4 py-8">
         <motion.div variants={itemVariants} className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -69,7 +82,6 @@ export default function DashboardPage() {
             </h1>
             <p className="mt-1 text-neutral-slate text-sm">Welcome back. Manage your plans and preferences here.</p>
           </div>
-          {/* ★★★ 2. TokenPill использует реальный баланс из сессии ★★★ */}
           <TokenPill balance={session?.user?.tokenBalance ?? 0} />
         </motion.div>
 
@@ -82,7 +94,8 @@ export default function DashboardPage() {
             <svg className="size-4 text-neutral-slate" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search plans…" className="w-full bg-transparent outline-none text-sm" />
           </div>
-          <Dropdown label="Status" value={status} options={["All", "Active", "Draft", "Archived"]} onChange={(v) => setStatus(v as "All" | "Active" | "Draft" | "Archived")} />
+          {/* ★★★ ИСПОЛЬЗУЕМ ПЕРЕИМЕНОВАННЫЕ ПЕРЕМЕННЫЕ ★★★ */}
+          <Dropdown label="Status" value={filterStatus} options={["All", "Active", "Draft", "Archived"]} onChange={(v) => setFilterStatus(v as any)} />
           <Dropdown label="Diet" value={diet} options={["All", "Mediterranean", "Gluten‑free", "High protein", "Budget", "Vegetarian", "≤20 min"]} onChange={setDiet} />
         </motion.div>
         
@@ -92,7 +105,6 @@ export default function DashboardPage() {
               <PlanCard p={p} onShop={setShopFor} />
             </motion.div>
           ))}
-          {/* ★★★ 3. Этот блок теперь отображается по умолчанию, т.к. plans пустой ★★★ */}
           {filteredPlans.length === 0 && (
             <motion.div variants={itemVariants} className="md:col-span-2">
               <div className="rounded-card border border-dashed border-neutral-lines bg-white/50 p-8 text-center">
@@ -105,7 +117,6 @@ export default function DashboardPage() {
         </div>
       </section>
       
-      {/* Drawer остается здесь, так как его состояние управляется этой страницей */}
       <Drawer open={Boolean(shopFor)} onClose={() => setShopFor(null)} title={shopFor ? `Shopping list — ${shopFor.title}` : "Shopping list"}>
         <p>Shopping list content for {shopFor?.title} will go here...</p>
       </Drawer>

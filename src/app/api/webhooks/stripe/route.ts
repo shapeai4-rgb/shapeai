@@ -6,7 +6,7 @@ import { TOKENS_FOR_PLAN } from '@/lib/constants';
 
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!;
 const TOKENS_PER_EURO = 10;
-const FX_EUR_GBP = 0.85; // Наш курс для конвертации
+const FX_EUR_GBP = 0.85;
 
 export async function POST(request: Request) {
   const body = await request.text();
@@ -14,7 +14,6 @@ export async function POST(request: Request) {
 
   let event: Stripe.Event;
 
-  // 1. --- Проверяем подпись веб-хука ---
   try {
     event = stripe.webhooks.constructEvent(body, signature, WEBHOOK_SECRET);
   } catch (error) {
@@ -23,28 +22,31 @@ export async function POST(request: Request) {
     return new NextResponse(`Webhook Error: ${errorMessage}`, { status: 400 });
   }
 
-  // 2. --- Обрабатываем только событие `checkout.session.completed` ---
   if (event.type === 'checkout.session.completed') {
-    const session = event.data.object as Stripe.Checkout.Session & {
-      line_items: Stripe.ApiList<Stripe.LineItem>
-    };
+    const sessionFromWebhook = event.data.object as Stripe.Checkout.Session;
 
-    const userId = session.metadata?.userId;
+    // ★★★ НОВЫЙ БЛОК: Получаем полную сессию с деталями покупки ★★★
+    const sessionWithLineItems = await stripe.checkout.sessions.retrieve(
+      sessionFromWebhook.id,
+      { expand: ['line_items'] }
+    );
+    // ★★★ КОНЕЦ НОВОГО БЛОКА ★★★
+
+    const userId = sessionWithLineItems.metadata?.userId;
     if (!userId) {
       return new NextResponse('User ID not found in session metadata.', { status: 400 });
     }
 
-    const lineItem = session.line_items.data[0];
-    if (!lineItem || !lineItem.description) {
-      return new NextResponse('Line item description not found.', { status: 400 });
+    const lineItem = sessionWithLineItems.line_items?.data[0];
+    if (!lineItem) {
+      return new NextResponse('Line item not found.', { status: 400 });
     }
 
     let tokensToAdd = 0;
 
-    // 3. --- Рассчитываем количество токенов для начисления ---
-    if (lineItem.description.includes('Custom Amount')) {
-      const amount = session.amount_total! / 100; // Сумма в EUR или GBP
-      const currency = session.currency!.toLowerCase();
+    if (lineItem.description?.includes('Custom Amount')) {
+      const amount = sessionWithLineItems.amount_total! / 100;
+      const currency = sessionWithLineItems.currency!.toLowerCase();
       
       if (currency === 'eur') {
         tokensToAdd = Math.round(amount * TOKENS_PER_EURO);
@@ -53,7 +55,6 @@ export async function POST(request: Request) {
         tokensToAdd = Math.round(amountInEur * TOKENS_PER_EURO);
       }
     } else {
-      // Ищем ID плана по названию (например, "Top-up: Standard Plan")
       const planId = Object.keys(TOKENS_FOR_PLAN).find(
         p => lineItem.description?.toLowerCase().includes(p)
       ) as keyof typeof TOKENS_FOR_PLAN | undefined;
@@ -64,15 +65,10 @@ export async function POST(request: Request) {
     }
     
     if (tokensToAdd > 0) {
-      // 4. --- Атомарно пополняем баланс пользователя в БД ---
       try {
         await prisma.user.update({
           where: { id: userId },
-          data: {
-            tokenBalance: {
-              increment: tokensToAdd,
-            },
-          },
+          data: { tokenBalance: { increment: tokensToAdd } },
         });
         console.log(`Successfully credited ${tokensToAdd} tokens to user ${userId}.`);
       } catch (dbError) {
@@ -82,6 +78,5 @@ export async function POST(request: Request) {
     }
   }
 
-  // 5. --- Отправляем успешный ответ в Stripe ---
   return NextResponse.json({ received: true });
 }

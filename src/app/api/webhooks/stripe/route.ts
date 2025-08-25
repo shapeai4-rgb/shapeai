@@ -17,9 +17,10 @@ export async function POST(request: Request) {
   // 1. --- Проверяем подпись веб-хука ---
   try {
     event = stripe.webhooks.constructEvent(body, signature, WEBHOOK_SECRET);
-  } catch (error: any) {
-    console.error('Webhook signature verification failed.', error.message);
-    return new NextResponse(`Webhook Error: ${error.message}`, { status: 400 });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Webhook signature verification failed.', errorMessage);
+    return new NextResponse(`Webhook Error: ${errorMessage}`, { status: 400 });
   }
 
   // 2. --- Обрабатываем только событие `checkout.session.completed` ---

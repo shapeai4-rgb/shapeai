@@ -95,7 +95,7 @@ export default function DashboardPage() {
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search plans…" className="w-full bg-transparent outline-none text-sm" />
           </div>
           {/* ★★★ ИСПОЛЬЗУЕМ ПЕРЕИМЕНОВАННЫЕ ПЕРЕМЕННЫЕ ★★★ */}
-          <Dropdown label="Status" value={filterStatus} options={["All", "Active", "Draft", "Archived"]} onChange={(v) => setFilterStatus(v as any)} />
+          <Dropdown label="Status" value={filterStatus} options={["All", "Active", "Draft", "Archived"]} onChange={(v) => setFilterStatus(v as "All" | "Active" | "Draft" | "Archived")} />
           <Dropdown label="Diet" value={diet} options={["All", "Mediterranean", "Gluten‑free", "High protein", "Budget", "Vegetarian", "≤20 min"]} onChange={setDiet} />
         </motion.div>
         

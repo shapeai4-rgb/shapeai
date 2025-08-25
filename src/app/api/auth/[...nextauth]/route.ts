@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { Adapter } from "next-auth/adapters";
 
 // ★★★ 1. Экспортируем authOptions, чтобы использовать его в других местах ★★★
-export const authOptions: NextAuthOptions = {
+const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as Adapter,
   providers: [
     GoogleProvider({

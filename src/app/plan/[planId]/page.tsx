@@ -31,7 +31,7 @@ export default function DayPreviewPage() {
     const t = useMemo(() => totals(meals), [meals]);
     const kcalDelta = t.kcal - targetKcal;
     const shopping = useMemo(() => buildShoppingList(meals), [meals]);
-    const { data: session, status } = useSession();
+    const { status } = useSession();
     const isLoggedIn = status === 'authenticated'; // ★★★ Наша новая, реальная переменная
     const handleDownload = () => {
       if (!isLoggedIn) {

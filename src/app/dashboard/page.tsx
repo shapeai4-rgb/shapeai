@@ -1,7 +1,6 @@
 'use client';
 import React, { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { cn } from "@/lib/utils";
 import type { Plan } from "@/types";
 import Link from 'next/link';
 
@@ -12,9 +11,6 @@ import { Drawer } from "@/components/ui/Drawer";
 import { PlanCard } from "@/components/shared/PlanCard";
 import { StaggeredFadeIn, itemVariants } from "@/components/ui/StaggeredFadeIn";
 import { motion } from "framer-motion";
-
-// --- Данные (только для примера активности, планы теперь пустые) ---
-import { MOCK_ACTIVITY, MOCK_USER } from "@/lib/constants";
 
 // --- Вспомогательный компонент TokenPill ---
 // (Он останется здесь, так как используется только в Дашборде)

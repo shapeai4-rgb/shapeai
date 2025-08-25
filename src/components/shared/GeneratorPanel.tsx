@@ -6,9 +6,10 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { DIET_TYPES, CUISINES, ALLERGENS, IF_OPTIONS, LEFTOVERS, ACTIVITY_LEVELS } from '@/lib/constants';
+import { type GeneratorFormData } from '@/types';
 
 type GeneratorPanelProps = {
-  onGenerate: (formData: any) => void;
+  onGenerate: (formData: GeneratorFormData) => void;
   loading: boolean;
   onAuth: () => void;
 };
@@ -47,19 +48,19 @@ export function GeneratorPanel({ onGenerate, loading, onAuth }: GeneratorPanelPr
   
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [advTab, setAdvTab] = useState<"Goals" | "Structure" | "Diet">("Goals");
-
-  const handleNestedChange = (part: 'goals' | 'structure' | 'diet', field: string, value: any) => {
+  
+  const handleNestedChange = (part: 'goals' | 'structure' | 'diet', field: string, value: string | number | boolean) => {
     setFormData(prev => ({
       ...prev,
       [part]: { ...prev[part], [field]: value }
     }));
   };
-  
-  const handleChipToggle = (part: 'diet', field: 'types' | 'cuisines' | 'allergens' | 'intolerances', id: string) => {
+
+  const handleChipToggle = (part: 'diet', field: 'types' | 'cuisines' | 'allergens', id: string) => {
     setFormData(prev => {
-      const current = prev[part][field] as string[];
+      const current = (prev[part] as any)[field] as string[];
       const updated = current.includes(id) ? current.filter(item => item !== id) : [...current, id];
-      return { ...prev, [part]: { ...prev[part], [field]: updated } };
+      return { ...prev, [part]: { ...(prev[part] as any), [field]: updated } };
     });
   };
 

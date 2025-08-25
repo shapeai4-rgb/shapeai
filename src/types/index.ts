@@ -52,3 +52,11 @@ text: string;
 };
 
 export type Currency = 'EUR' | 'GBP';
+
+export type GeneratorFormData = {
+  freeText: string;
+  days: number;
+  goals: Record<string, unknown>;
+  structure: Record<string, unknown>;
+  diet: Record<string, unknown>;
+};

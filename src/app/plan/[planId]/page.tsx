@@ -11,8 +11,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Drawer } from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/Button";
 import { StaggeredFadeIn, itemVariants } from "@/components/ui/StaggeredFadeIn";
-import { AnimatedCard } from "@/components/ui/AnimatedCard";
-import { useSession, signIn, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 
 // --- Данные, Типы и Утилиты ---
 import type { Meal } from "@/types";
@@ -22,7 +21,7 @@ import { totals, buildShoppingList } from "@/lib/utils";
 // --- Главный компонент страницы ---
 export default function DayPreviewPage() {
     const [meals, setMeals] = useState<Meal[]>(START_MEALS);
-    const [targetKcal, setTargetKcal] = useState(1500);
+    const [targetKcal] = useState(1500);
     const [economy, setEconomy] = useState(false);
     const [calcOpen, setCalcOpen] = useState(false);
     const [swapOpenFor, setSwapOpenFor] = useState<Meal | null>(null);

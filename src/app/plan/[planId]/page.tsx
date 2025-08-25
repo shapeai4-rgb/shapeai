@@ -12,6 +12,7 @@ import { Drawer } from "@/components/ui/Drawer";
 import { Button } from "@/components/ui/Button";
 import { StaggeredFadeIn, itemVariants } from "@/components/ui/StaggeredFadeIn";
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
+import { useSession, signIn, signOut } from "next-auth/react";
 
 // --- Данные, Типы и Утилиты ---
 import type { Meal } from "@/types";
@@ -31,7 +32,8 @@ export default function DayPreviewPage() {
     const t = useMemo(() => totals(meals), [meals]);
     const kcalDelta = t.kcal - targetKcal;
     const shopping = useMemo(() => buildShoppingList(meals), [meals]);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const { data: session, status } = useSession();
+    const isLoggedIn = status === 'authenticated'; // ★★★ Наша новая, реальная переменная
     const handleDownload = () => {
       if (!isLoggedIn) {
         setAuthMode("signup");
@@ -66,21 +68,6 @@ export default function DayPreviewPage() {
 
   return (
       <main className="bg-brand-gradient text-neutral-ink">
-          <header className="sticky top-0 z-40 border-b border-neutral-lines bg-white/80 backdrop-blur">
-              <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                      <div className="size-8 rounded-md bg-accent" aria-hidden />
-                      <span className="font-headings font-semibold tracking-tight">WeightLoss.AI</span>
-                  </div>
-                  <nav className="hidden md:flex items-center gap-8 text-sm text-neutral-slate">
-                      <a href="#" className="transition-colors hover:text-neutral-ink">Week</a>
-                      <button onClick={() => setShopOpen(true)} className="transition-colors hover:text-neutral-ink">Shopping list</button>
-                      <button onClick={() => setAuthMode("login")} className="transition-colors hover:text-neutral-ink">Log in</button>
-                      <Button onClick={() => setAuthMode("signup")} className="px-4 py-2 text-sm">Sign up</Button>
-                  </nav>
-              </div>
-          </header>
-
           <section className="mx-auto max-w-7xl px-4 py-10">
               <StaggeredFadeIn className="grid grid-cols-1 md:grid-cols-[auto,1fr] gap-8 items-start">
                   <motion.div variants={itemVariants}>

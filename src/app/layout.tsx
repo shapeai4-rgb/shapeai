@@ -1,19 +1,23 @@
-// src/ app/ layout.tsx
+// src/app/layout.tsx 
 import type { Metadata } from "next";
-// Импортируем нужные шрифты из Google Fonts
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-// Настраиваем шрифты
+// ★★★ Импорты, которые я пропустил ★★★
+import AuthProvider from "@/components/providers/AuthProvider";
+import { Header } from "@/components/shared/Header";
+import { Footer } from "@/components/shared/Footer";
+
+// ★★★ Определения шрифтов, которые я пропустил ★★★
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-inter", // Создаем CSS переменную для Inter
+  variable: "--font-inter",
 });
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  weight: ["600", "700"], // Загружаем только нужные нам веса
-  variable: "--font-plus-jakarta-sans", // Создаем CSS переменную для заголовков
+  weight: ["600", "700"],
+  variable: "--font-plus-jakarta-sans",
 });
 
 export const metadata: Metadata = {
@@ -23,13 +27,21 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
-    // Применяем переменные шрифтов к всему приложению
     <html lang="en" className={`${inter.variable} ${plusJakartaSans.variable}`}>
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          <Header />
+          {/* ★★★ Оборачиваем {children} в <main> для семантической верстки ★★★ */}
+          <main className="min-h-screen">
+            {children}
+          </main>
+          <Footer />
+        </AuthProvider>
+      </body>
     </html>
   );
 }

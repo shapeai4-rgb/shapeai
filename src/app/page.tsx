@@ -1,49 +1,159 @@
 'use client';
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useState, useRef } from "react";
 import Link from 'next/link';
 import { motion, AnimatePresence } from "framer-motion";
+import { useSession } from "next-auth/react";
+import { cn } from "@/lib/utils";
+import { useAppStore } from "@/lib/store";
+import axios from 'axios';
 
 // --- Компоненты ---
 import { Button } from "@/components/ui/Button";
-import { Chip } from "@/components/ui/Chip";
 import { SkeletonCard } from "@/components/shared/SkeletonCard";
 import { RecipeCard } from "@/components/shared/RecipeCard";
 import { PdfMini } from "@/components/shared/PdfMini";
 import { AuthModal } from "@/components/shared/AuthModal";
 import { StaggeredFadeIn, itemVariants } from "@/components/ui/StaggeredFadeIn";
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
+import { GeneratorPanel } from '@/components/shared/GeneratorPanel';
 
-// --- Данные и Типы ---
-import type { Recipe } from "@/types";
-import { QUICK_CHIPS, STEP_ITEMS, FAQ, MOCK_RECIPES } from "@/lib/constants";
+// --- Типы и Данные ---
+// Эти типы и константы следует вынести в соответствующие файлы, но пока оставим как есть.
+type Currency = 'EUR' | 'GBP';
+type TopUpPlan = {
+  id: string;
+  name: string;
+  priceEUR?: number;
+  tokens?: number;
+  bonus?: string;
+  popular?: boolean;
+  custom?: boolean;
+};
+type Recipe = {
+  id: string;
+  title: string;
+  kcal: number;
+  macro: { protein: number; fat: number; carbs: number };
+  time: string;
+  portion: string;
+  image?: string;
+};
+const TOPUP_PLANS: TopUpPlan[] = [
+  { id: "lite", name: "Lite", priceEUR: 9, tokens: 90 },
+  { id: "standard", name: "Standard", priceEUR: 19, tokens: 210, bonus: "+10%", popular: true },
+  { id: "pro", name: "Pro", priceEUR: 49, tokens: 600, bonus: "+20%" },
+  { id: "custom", name: "Custom", custom: true },
+];
+const MOCK_RECIPES: Recipe[] = [
+  { id: "r1", title: "Greek Chicken Bowl", kcal: 520, macro: { protein: 45, fat: 18, carbs: 45 }, time: "20–25 min", portion: "1 bowl (380 g)", image: "https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=1640&auto=format&fit=crop" },
+  { id: "r2", title: "Steamed Salmon with Veg", kcal: 430, macro: { protein: 36, fat: 15, carbs: 32 }, time: "18–22 min", portion: "1 serving (300 g)", image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?q=80&w=1640&auto=format&fit=crop" },
+  { id: "r3", title: "Overnight Oats Protein Pudding", kcal: 310, macro: { protein: 28, fat: 7, carbs: 35 }, time: "10–15 min", portion: "1 cup (260 g)", image: "https://images.unsplash.com/photo-1532768641073-503a250f9754?q=80&w=1640&auto=format&fit=crop" },
+];
+const STEP_ITEMS = [ { title: "Brief", desc: "Describe habits and limits: cook time, budget, cuisines, allergies.", icon: ( <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5"> <path d="M4 6h16M4 12h10M4 18h7" strokeLinecap="round" /> </svg> )}, { title: "Preview", desc: "Instant 1‑day plan: calories, macros, portions and quick swaps.", icon: ( <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5"> <path d="M3 7h18M3 12h18M3 17h18" /> </svg> )}, { title: "7‑Day PDF", desc: "Download a branded PDF with shopping list and QR to live plan.", icon: ( <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5"> <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /> <path d="M14 2v6h6" /> </svg> )}, ];
+const FAQ = [ { q: "How accurate are calories?", a: "We use BMR/TDEE with a safe deficit. You can inspect and adjust assumptions in the calculation popover." }, { q: "Can I swap meals?", a: "Yes. Each meal has 2–3 isocaloric alternatives with similar macros." }, { q: "GLP‑1 mode available?", a: "Yes — smaller portions, higher protein, and gentle texture tips + hydration reminders." }, { q: "Is the PDF free?", a: "1‑day preview is free. The 7‑day PDF export unlocks after sign up." }, ];
 
-// --- Кастомный компонент для FAQ с плавной анимацией ---
+// --- Вспомогательные функции ---
+const FX_EUR_GBP = 0.85;
+function formatCurrency(cur: Currency, amount: number, opts: { trimCents?: boolean } = {}) { const symbol = cur === 'EUR' ? '€' : '£'; const value = opts.trimCents ? amount.toFixed(0) : amount.toFixed(2); return `${symbol}${value}`; }
+function convertEUR(amountEUR: number, to: Currency) { return to === 'EUR' ? amountEUR : amountEUR * FX_EUR_GBP; }
+function isValidAmount(input: string) { const trimmed = input.trim(); if (!trimmed) return false; return /^\d+(?:[\.,]\d{1,2})?$/.test(trimmed); }
+function normalizeAmount(input: string) { return input.replace(',', '.'); }
+
+// --- Уникальные Компоненты для Этой Страницы ---
+function TopUpCard({ plan, onSelect, isLoggedIn }: { plan: TopUpPlan; onSelect: () => void; isLoggedIn: boolean; }) {
+  const [amount, setAmount] = useState<string>("");
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const currency = useAppStore((state) => state.currency);
+  const symbol = currency === 'EUR' ? '€' : '£';
+  const valid = plan.custom ? isValidAmount(amount) : true;
+  const priceInSelected = plan.custom ? (valid ? Number(normalizeAmount(amount)) : null) : (plan.priceEUR != null ? convertEUR(plan.priceEUR, currency) : null);
+
+  // ★ 3. Новая функция для обработки клика и вызова API
+  const handleCheckout = async () => {
+    if (!isLoggedIn) {
+      onSelect(); // Открываем модалку, если не залогинен
+      return;
+    }
+    
+    setIsRedirecting(true);
+
+    try {
+      let requestBody = {};
+      const lowerCaseCurrency = currency.toLowerCase();
+
+      if (plan.custom) {
+        if (!valid) {
+          alert("Please enter a valid amount.");
+          setIsRedirecting(false);
+          return;
+        }
+        // Конвертируем в центы/пенсы
+        const amountInCents = Math.round(Number(normalizeAmount(amount)) * 100);
+        requestBody = { customAmount: amountInCents, currency: lowerCaseCurrency };
+      } else {
+        requestBody = { planId: plan.id, currency: lowerCaseCurrency };
+      }
+      
+      const { data } = await axios.post('/api/checkout-sessions', requestBody);
+      
+      // Перенаправляем пользователя на страницу оплаты Stripe
+      if (data.url) {
+        window.location.href = data.url;
+      }
+
+    } catch (error) {
+      console.error("Checkout failed:", error);
+      alert("An error occurred. Please try again.");
+      setIsRedirecting(false);
+    }
+  };
+
+  return (
+    <AnimatedCard>
+      <article className={cn("relative rounded-card border p-5 shadow-soft h-full", plan.popular ? "border-accent bg-accent/10" : "border-neutral-lines bg-white")}>
+        {plan.popular && <div className="absolute -top-2 right-4 rounded-full bg-accent px-2 py-0.5 text-xs text-white">Most popular</div>}
+        <div className="flex items-baseline justify-between">
+          <h3 className="font-headings text-base font-semibold">{plan.name}</h3>
+          {plan.bonus && <span className="text-xs text-accent">{plan.bonus}</span>}
+        </div>
+        {plan.custom ? (
+          <div className="mt-2">
+            <label className="text-xs text-neutral-slate">Amount ({symbol})</label>
+            <input inputMode="decimal" placeholder={symbol + " 12.50"} value={amount} onChange={(e) => setAmount(e.target.value)} className="mt-1 w-full rounded-xl border border-neutral-lines px-3 py-2 text-sm outline-none ring-accent/50 focus:ring-2" />
+            <p className={cn("mt-1 text-xs", valid ? "text-neutral-slate/80" : "text-status-danger")}>{valid ? "Up to 2 decimals (dot or comma)." : "Please enter a valid amount."}</p>
+          </div>
+        ) : (
+          <div className="mt-2 text-2xl font-headings font-semibold">{formatCurrency(currency, Number(priceInSelected?.toFixed(0) ?? 0), { trimCents: true })}</div>
+        )}
+        {plan.tokens && <div className="mt-1 text-xs text-neutral-slate">≈ {plan.tokens.toLocaleString()} tokens</div>}
+        <div className="mt-4 text-xs text-neutral-slate">
+          {isLoggedIn ? 'Proceed to checkout' : 'Sign in to Top‑up'}
+        </div>
+        <Button 
+          onClick={handleCheckout} // ★ 4. Вызываем нашу новую функцию
+          locked={plan.custom && !valid}
+          disabled={isRedirecting} // ★ 5. Блокируем кнопку во время загрузки
+          className="w-full mt-2 text-sm py-2"
+        >
+          {isRedirecting ? 'Redirecting...' : (isLoggedIn ? `Top‑up ${formatCurrency(currency, Number(priceInSelected?.toFixed(0) ?? 0), { trimCents: true })}` : 'Sign up to Top-up')}
+        </Button>
+      </article>
+    </AnimatedCard>
+  );
+}
+
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [isOpen, setIsOpen] = useState(false);
   return (
     <motion.div variants={itemVariants} className="rounded-card border border-neutral-lines bg-white p-5">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center justify-between text-left"
-      >
+      <button onClick={() => setIsOpen(!isOpen)} className="flex w-full items-center justify-between text-left">
         <span className="font-headings font-semibold text-neutral-ink">{q}</span>
-        <motion.span
-          className="text-neutral-slate"
-          animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          ⌄
-        </motion.span>
+        <motion.span className="text-neutral-slate" animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>⌄</motion.span>
       </button>
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0, marginTop: 0 }}
-            animate={{ opacity: 1, height: 'auto', marginTop: '12px' }}
-            exit={{ opacity: 0, height: 0, marginTop: 0 }}
-            transition={{ duration: 0.2 }}
-          >
+          <motion.div initial={{ opacity: 0, height: 0, marginTop: 0 }} animate={{ opacity: 1, height: 'auto', marginTop: '12px' }} exit={{ opacity: 0, height: 0, marginTop: 0 }} transition={{ duration: 0.2 }}>
             <p className="text-sm text-neutral-slate">{a}</p>
           </motion.div>
         )}
@@ -54,67 +164,70 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 
 // --- Главный компонент страницы ---
 export default function HomePage() {
-  // --- Состояние (State) ---
-  const [free, setFree] = useState("");
-  const [active, setActive] = useState<string[]>(["lose", "3-4", "high-protein"]);
+  const { data: session, status } = useSession();
+  const isLoggedIn = status === 'authenticated';
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<Recipe[] | null>(MOCK_RECIPES);
-  const [advanced, setAdvanced] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup" | null>(null);
-
-  // ★★★ НОВОЕ СОСТОЯНИЕ: Моделируем, залогинен ли пользователь ★★★
-  // В будущем это будет браться из стейт-менеджера (Zustand)
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
   const previewRef = useRef<HTMLDivElement>(null);
 
-  const handleChip = (id: string) => {
-    setActive((curr) => (curr.includes(id) ? curr.filter((x) => x !== id) : [...curr, id]));
-  };
+  // Updated function to accept formData from the child component
+  const handleGenerate = async (formData: any) => {
+    setLoading(true);
+    setPreview(null); // Clear previous preview
 
-  const handleGenerate = () => {
-    // ★★★ НОВАЯ ЛОГИКА: Проверяем, авторизован ли пользователь ★★★
-    if (!isLoggedIn) {
-      setAuthMode("signup"); // Если нет - открываем модалку регистрации
-      return;
+    try {
+      // Send the entire formData object to our updated API
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        alert(`Error: ${errorText}`);
+        setLoading(false);
+        return;
+      }
+
+      const generatedPlan = await response.json();
+      console.log("Received plan from AI:", generatedPlan);
+
+      const firstDayKey = Object.keys(generatedPlan)[0];
+      if (!firstDayKey || !generatedPlan[firstDayKey]) {
+        throw new Error("AI response is missing meal data for the first day.");
+      }
+      const firstDayMeals = generatedPlan[firstDayKey];
+
+      const formattedPreview = Object.entries(firstDayMeals).map(([mealType, mealDetails]: [string, any], index) => ({
+        id: `ai-${mealType}-${index}`,
+        title: mealDetails.title,
+        kcal: parseInt(mealDetails.kcal, 10) || 0,
+        macro: { protein: 0, fat: 0, carbs: 0 }, // Macros can be added later if returned by AI
+        time: "AI",
+        portion: "Generated",
+      }));
+
+      setPreview(formattedPreview);
+      
+    } catch (error) {
+      console.error("Failed to generate plan:", error);
+      alert("An error occurred while generating the plan.");
+      setPreview(MOCK_RECIPES); // Restore mocks on error
     }
 
-    // Если авторизован, запускаем генерацию (как и раньше)
-    setLoading(true);
-    setPreview(null);
-    setTimeout(() => {
-      setPreview(MOCK_RECIPES);
-      setLoading(false);
-      previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 1100);
+    setLoading(false);
+    previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
-
-  const chipHint = useMemo(() => {
-    const map: Record<string, string> = {
-      lose: "calorie deficit", "3-4": "3–4 meals", "high-protein": ">=1.6 g/kg protein",
-      "gluten-free": "gluten‑free", vegetarian: "vegetarian", if168: "window 16:8", glp1: "GLP‑1 mode",
-    };
-    return active.map((id) => map[id]).filter(Boolean).join(" · ");
-  }, [active]);
 
   return (
     <main className="relative text-neutral-ink">
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-brand-gradient" />
-      
-      <header className="sticky top-0 z-40 border-b border-neutral-lines bg-white/80 backdrop-blur">
-        <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="size-8 rounded-md bg-accent" aria-hidden />
-            <span className="font-headings font-semibold tracking-tight">WeightLoss.AI</span>
-          </div>
-          <nav className="hidden md:flex items-center gap-8 text-sm text-neutral-slate">
-            <a href="#how" className="transition-colors hover:text-neutral-ink">How it works</a>
-            <a href="#faq" className="transition-colors hover:text-neutral-ink">FAQ</a>
-            <button onClick={() => setAuthMode("login")} className="transition-colors hover:text-neutral-ink">Log in</button>
-            <Button onClick={() => setAuthMode("signup")} className="px-4 py-2 text-sm">Sign up</Button>
-          </nav>
-        </div>
-      </header>
+      <div aria-hidden className="pointer-events-none absolute -top-32 -right-32 -z-10 size-[520px] rounded-full bg-accent/10 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute top-1/3 -left-24 -z-10 size-[420px] rounded-full bg-accent/5 blur-3xl" />
 
       <section className="mx-auto max-w-7xl px-4 py-12 md:py-20">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
@@ -125,44 +238,22 @@ export default function HomePage() {
             <motion.p variants={itemVariants} className="mt-4 text-neutral-slate md:text-lg">
               Describe your habits and goals, pick dietary limits — get a free 1‑day preview and a <span className="font-semibold text-neutral-ink">7‑day PDF</span> with shopping list and swaps.
             </motion.p>
-            <motion.div variants={itemVariants} className="mt-6 rounded-card border border-neutral-lines bg-white p-4 md:p-5 shadow-soft">
-              <label htmlFor="free" className="text-sm font-medium text-neutral-slate">Free‑text brief</label>
-              <textarea id="free" placeholder="Love Mediterranean food, cook ≤20 min, lactose‑free, budget €10/day…" value={free} onChange={(e) => setFree(e.target.value)} rows={3} className="mt-2 w-full resize-y rounded-xl border border-neutral-lines bg-white px-3 py-2 text-sm outline-none ring-accent/50 focus:ring-2" />
-              <div className="mt-3 flex flex-wrap gap-2">
-                {QUICK_CHIPS.map((c) => (<Chip key={c.id} active={active.includes(c.id)} onClick={() => handleChip(c.id)}>{c.label}</Chip>))}
-              </div>
-              <div className="mt-3 flex items-center justify-between text-xs text-neutral-slate">
-                <button type="button" onClick={() => setAdvanced((v) => !v)} className="hover:text-neutral-ink">{advanced ? "Hide advanced" : "+ More options"}</button>
-                <div className="hidden md:block">{chipHint}</div>
-              </div>
-              <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <Button
-                  onClick={handleGenerate}
-                  className="w-full sm:w-auto"
-                  locked={!isLoggedIn} // ★★★ Кнопка заблокирована, если пользователь НЕ залогинен
-                >
-                  {loading ? "Generating…" : "Generate preview plan"}
-                </Button>
-                <div className="text-xs text-neutral-slate">Sign-up needed to generate. Full week — in PDF.</div>
-              </div>
+            {/* The old form is replaced by our new component */}
+            <motion.div variants={itemVariants} className="mt-6">
+              <GeneratorPanel 
+                onGenerate={handleGenerate}
+                loading={loading}
+                onAuth={() => setAuthMode("signup")}
+              />
             </motion.div>
           </StaggeredFadeIn>
-
+          
           <div aria-labelledby="preview-title" ref={previewRef}>
             <h2 id="preview-title" className="sr-only">Plan preview</h2>
             <StaggeredFadeIn className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <motion.div variants={itemVariants}><AnimatedCard><PdfMini /></AnimatedCard></motion.div>
               {loading && [...Array(3)].map((_, i) => (<motion.div variants={itemVariants} key={i}><SkeletonCard /></motion.div>))}
               {!loading && preview && preview.map((r) => (<motion.div variants={itemVariants} key={r.id}><AnimatedCard><RecipeCard r={r} /></AnimatedCard></motion.div>))}
-              {!loading && preview && (
-                <motion.div variants={itemVariants} className="col-span-full">
-                  <div className="mt-2 rounded-xl border border-dashed border-neutral-lines p-4 text-sm text-neutral-slate">
-                    Days 2–7 are available in the PDF.
-                    {/* ★★★ ИЗМЕНЕНИЕ: Добавляем Link на страницу плана ★★★ */}
-                    <Link href="/plan" className="ml-2 font-semibold text-accent hover:underline">Download 7‑day PDF</Link>
-                  </div>
-                </motion.div>
-              )}
             </StaggeredFadeIn>
           </div>
         </div>
@@ -191,22 +282,28 @@ export default function HomePage() {
         </StaggeredFadeIn>
       </section>
 
+      <section id="topup" className="mx-auto max-w-7xl px-4 py-10">
+        <StaggeredFadeIn>
+          <motion.div variants={itemVariants} className="rounded-3xl border border-neutral-lines bg-white p-6 md:p-8 shadow-soft">
+            <h2 className="text-xl md:text-2xl font-headings font-semibold">Top‑up tokens</h2>
+            <p className="mt-1 text-sm text-neutral-slate">Choose a pack or enter a custom amount. Sign‑in required to complete top‑up.</p>
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              {TOPUP_PLANS.map((p) => (
+                <motion.div variants={itemVariants} key={p.id}>
+                  <TopUpCard plan={p} onSelect={() => setAuthMode("signup")} isLoggedIn={isLoggedIn} />
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </StaggeredFadeIn>
+      </section>
+
       <section id="faq" className="mx-auto max-w-7xl px-4 py-12">
         <StaggeredFadeIn className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <motion.h2 variants={itemVariants} className="text-xl md:text-2xl font-headings font-semibold col-span-full">FAQ</motion.h2>
           {FAQ.map((f) => (<FaqItem key={f.q} q={f.q} a={f.a} />))}
         </StaggeredFadeIn>
       </section>
-
-      <footer className="border-t border-neutral-lines bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-8 text-sm text-neutral-slate flex flex-col md:flex-row gap-2 md:items-center md:justify-between">
-          <div>© {new Date().getFullYear()} WeightLoss.AI</div>
-          <div className="flex gap-4">
-            <a href="#" className="hover:text-neutral-ink">Privacy</a>
-            <a href="#" className="hover:text-neutral-ink">Contact</a>
-          </div>
-        </div>
-      </footer>
       
       <AuthModal open={authMode !== null} mode={authMode || "signup"} onClose={() => setAuthMode(null)} />
     </main>

@@ -151,3 +151,66 @@ export const SWAP_CATALOG: Record<Meal['slot'], Meal[]> = {
     { id: "alt_s2", slot: "Snack", title: "Handful of Almonds", kcal: 180, macro: { protein: 6, fat: 14, carbs: 6 }, time: "1 min", portion: "approx. 20 almonds" },
   ],
 }
+
+import type { Plan, Activity } from "@/types";
+
+export const MOCK_USER = {
+  name: "Alex",
+  tokens: { balance: 124, usedThisMonth: 36, monthlyAllowance: 200 }
+};
+
+export const MOCK_PLANS: Plan[] = [
+  { id: "p1", title: "Weight Loss — 7‑Day Personalized Plan", createdAt: "2025-08-12T10:20:00Z", days: 7, kcalTarget: 1850, macroTarget: { protein: 140, fat: 55, carbs: 180 }, dietTags: ["Mediterranean", "Gluten‑free"], glp1: true, status: "Active" },
+  { id: "p2", title: "High‑Protein — 14‑Day Budget Plan", createdAt: "2025-08-05T08:00:00Z", days: 14, kcalTarget: 2000, macroTarget: { protein: 160, fat: 60, carbs: 190 }, dietTags: ["High protein", "Budget"], status: "Draft" },
+  { id: "p3", title: "Vegetarian — 7‑Day Quick Cook", createdAt: "2025-07-28T14:10:00Z", days: 7, kcalTarget: 1750, macroTarget: { protein: 120, fat: 50, carbs: 190 }, dietTags: ["Vegetarian", "≤20 min"], status: "Archived" },
+];
+
+export const MOCK_ACTIVITY: Activity[] = [
+  { id: 1, time: "2025-08-19 09:40", text: "Downloaded PDF for ‘Weight Loss — 7‑Day Personalized Plan’." },
+  { id: 2, time: "2025-08-18 18:05", text: "Swapped ‘Dinner’ on Day 3 (Salmon → Chicken stir‑fry)." },
+  { id: 3, time: "2025-08-16 11:12", text: "Added exclusion: onion." },
+];
+
+export const GENERATOR_CHIPS = ["Lose weight", "3–4 meals", "High protein", "Gluten-free", "Vegetarian", "IF 16:8", "GLP-1 friendly"];
+export const DIET_TYPES = [
+  { id: 'mediterranean', label: 'Mediterranean' }, { id: 'high_protein', label: 'High-protein' },
+  { id: 'low_carb', label: 'Low-carb' }, { id: 'vegan', label: 'Vegan' },
+  { id: 'vegetarian', label: 'Vegetarian' }, { id: 'pescatarian', label: 'Pescatarian' },
+  { id: 'keto_lite', label: 'Keto-lite' },
+] as const;
+
+export const CUISINES = [
+  { id: 'italian', label: 'Italian' }, { id: 'mexican', label: 'Mexican' }, { id: 'asian', label: 'Asian' },
+  { id: 'indian', label: 'Indian' }, { id: 'french', label: 'French' }, { id: 'greek', label: 'Greek' },
+  { id: 'spanish', label: 'Spanish' },
+] as const;
+
+export const ALLERGENS = [
+  { id: 'dairy', label: 'Dairy' }, { id: 'gluten', label: 'Gluten' }, { id: 'nuts', label: 'Nuts' },
+  { id: 'soy', label: 'Soy' }, { id: 'eggs', label: 'Eggs' }, { id: 'fish', label: 'Fish' },
+  { id: 'shellfish', label: 'Shellfish' },
+] as const;
+
+export const INTOLERANCES = [
+  { id: 'lactose', label: 'Lactose' }, { id: 'fructose', label: 'Fructose' },
+  { id: 'histamine', label: 'Histamine' }, { id: 'caffeine', label: 'Caffeine' },
+] as const;
+
+export const MEAL_TIMING = ["Early bird (6–8am)", "Standard (8–10am)", "Late riser (10am–12pm)"] as const;
+export const IF_OPTIONS = ["None", "14:10", "16:8", "OMAD"] as const;
+export const LEFTOVERS = ["None", "Cook once eat twice", "Batch-cook Sun/Wed"] as const;
+
+// ★★★ НОВАЯ КОНСТАНТА ★★★
+export const ACTIVITY_LEVELS = [
+  { id: "sedentary", label: "Sedentary (office job)" },
+  { id: "lightly_active", label: "Lightly active (walks 1-3 times/wk)" },
+  { id: "moderately_active", label: "Moderately active (exercise 3-5 times/wk)" },
+  { id: 'very_active', label: "Very active (intense exercise 6-7 times/wk)" },
+  { id: 'extra_active', label: "Extra active (physical job/training twice a day)" },
+] as const;
+
+export const TOP_UP_PRICES = {
+  lite: { eur: 900, gbp: 800 },
+  standard: { eur: 1900, gbp: 1600 },
+  pro: { eur: 4900, gbp: 4200 },
+};

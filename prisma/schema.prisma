@@ -1,51 +1,72 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// 1. Настройки генератора и подключения
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL") // Prisma возьмет строку подключения из нашего .env файла
+  url      = env("DATABASE_URL")
 }
 
-// 2. Модель Пользователя (User)
-// Здесь мы будем хранить информацию о наших пользователях.
 model User {
-  id              String    @id @default(cuid()) // Уникальный ID пользователя
-  email           String    @unique // Email должен быть уникальным
-  name            String?   // Имя пользователя (необязательное)
-  hashedPassword  String?   // Хэш пароля (необязательно, если вход через Google)
+  id            String    @id @default(cuid())
+  name          String?
+  firstName     String?
+  lastName      String?
+  email         String?   @unique
+  emailVerified DateTime?
+  hashedPassword  String?
+  tokenBalance    Int       @default(10)
+  stripeCustomerId String?  @unique
+  image         String?
   
-  // Баланс токенов для генерации
-  tokenBalance    Int       @default(10) // Даем 10 бесплатных токенов при регистрации
-
-  // Информация для платежей через Stripe
-  stripeCustomerId String?   @unique // ID клиента в Stripe
-
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  // Связь: один пользователь может иметь много планов питания
-  mealPlans       MealPlan[]
+  accounts      Account[]
+  sessions      Session[]
+  mealPlans     MealPlan[]
 }
 
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-// 3. Модель Плана Питания (MealPlan)
-// Здесь будут храниться сгенерированные планы.
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
 model MealPlan {
-  id              String    @id @default(cuid()) // Уникальный ID плана
-  
-  // Содержимое всего плана мы будем хранить в формате JSON.
-  // Это очень гибко и идеально для начала.
-  // Внутри этого JSON будет лежать массив дней, рецептов и т.д.
-  content         Json
-
-  createdAt       DateTime  @default(now())
-
-  // Связь: этот план принадлежит одному конкретному пользователю
-  userId          String
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  content   Json
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  days        Int
+  kcalTarget  Int
+  status      String 
+  dietTags    String[]
 }

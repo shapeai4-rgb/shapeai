@@ -33,3 +33,22 @@ export type ShoppingItem = {
   unit: string;
   category: string;
 };
+
+export type Plan = {
+id: string;
+title: string;
+createdAt: string; // ISO
+days: number;
+kcalTarget: number;
+macroTarget: Macro;
+dietTags: string[];
+glp1?: boolean;
+status: "Active" | "Draft" | "Archived";
+};
+export type Activity = {
+id: number;
+time: string;
+text: string;
+};
+
+export type Currency = 'EUR' | 'GBP';

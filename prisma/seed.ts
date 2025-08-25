@@ -14,8 +14,8 @@ async function main() {
   // Delete meal plans first due to the relation
   await prisma.mealPlan.deleteMany();
   // We need to delete accounts and sessions before users
-  await prisma.account.deleteMany();
-  await prisma.session.deleteMany();
+  await prisma.account.deleteMany({});
+  await prisma.session.deleteMany({});
   await prisma.user.deleteMany();
   console.log('Existing data deleted.');
 

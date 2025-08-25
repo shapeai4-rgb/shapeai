@@ -43,7 +43,7 @@ export default function DashboardPage() {
   const { data: session } = useSession();
 
   // ★★★ 1. Начальное состояние планов - ПУСТОЙ МАССИВ ★★★
-  const [plans, setPlans] = useState<Plan[]>([]); 
+  const [plans] = useState<Plan[]>([]);
 
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"All" | "Active" | "Draft" | "Archived">("All");

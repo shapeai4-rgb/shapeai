@@ -56,11 +56,12 @@ export function GeneratorPanel({ onGenerate, loading, onAuth }: GeneratorPanelPr
     }));
   };
 
-  const handleChipToggle = (part: 'diet', field: 'types' | 'cuisines' | 'allergens', id: string) => {
+    const handleChipToggle = (part: 'diet', field: 'types' | 'cuisines' | 'allergens', id: string) => {
     setFormData(prev => {
-      const current = (prev[part] as any)[field] as string[];
+      const dietPart = prev[part];
+      const current = dietPart[field];
       const updated = current.includes(id) ? current.filter(item => item !== id) : [...current, id];
-      return { ...prev, [part]: { ...(prev[part] as any), [field]: updated } };
+      return { ...prev, [part]: { ...dietPart, [field]: updated } };
     });
   };
 

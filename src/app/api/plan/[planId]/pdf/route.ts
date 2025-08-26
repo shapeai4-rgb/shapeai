@@ -7,12 +7,13 @@ import { PlanPdfDocument } from "@/components/pdf/PlanPdfDocument";
 import { type MealPlanData } from "@/types/pdf";
 import React from "react";
 
+// ★★★ 1. ИСПОЛЬЗУЕМ ПРАВИЛЬНУЮ СИГНАТУРУ NEXT.JS ★★★
 export async function GET(
   request: Request,
-  { params }: { params: { planId: string } }
+  context: { params: { planId: string } } // Второй аргумент - это объект context
 ) {
   try {
-    console.log(`[PDF Route] Received request for planId: ${params.planId}`);
+    console.log(`[PDF Route] Received request for planId: ${context.params.planId}`);
 
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -20,7 +21,7 @@ export async function GET(
     }
     console.log(`[PDF Route] User ${session.user.id} is authorized.`);
 
-    const { planId } = params;
+    const { planId } = context.params; // ★ 2. Получаем planId из context.params
     if (!planId) {
       return new NextResponse("Plan ID is required", { status: 400 });
     }
@@ -34,7 +35,6 @@ export async function GET(
     }
     console.log(`[PDF Route] Found meal plan in DB for planId: ${planId}`);
     
-    // ★★★ ЛОГ ПЕРЕМЕЩЕН ПОСЛЕ ПРОВЕРКИ ★★★
     console.log(`[PDF Route] Raw content from DB: ${JSON.stringify(mealPlan.content, null, 2)}`);
 
     const planData = mealPlan.content as unknown as MealPlanData;

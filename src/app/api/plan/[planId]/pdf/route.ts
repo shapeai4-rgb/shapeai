@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -6,16 +6,16 @@ import { renderToStream, DocumentProps } from "@react-pdf/renderer";
 import { PlanPdfDocument } from "@/components/pdf/PlanPdfDocument";
 import { type MealPlanData } from "@/types/pdf";
 import React from "react";
-import { NextRequest } from "next/server";
 
-// ★★★ 1. ДОБАВЛЯЕМ ЭКСПОРТЫ, ЧТОБЫ ГАРАНТИРОВАТЬ ДИНАМИЧЕСКИЙ РЕНДЕРИНГ И NODE.JS РАНТАЙМ ★★★
-export const runtime = 'nodejs';
+// Гарантирует, что маршрут всегда будет динамическим
 export const dynamic = 'force-dynamic';
+// Указываем, что маршрут использует Node.js API (необходимо для @react-pdf/renderer)
+export const runtime = 'nodejs';
 
-// ★★★ 2. ИСПОЛЬЗУЕМ ПРАВИЛЬНУЮ СИГНАТУРУ NEXT.JS ★★★
+// ★★★ ФИНАЛЬНАЯ И ПРАВИЛЬНАЯ СИГНАТУРА ДЛЯ NEXT.JS 15+ ★★★
 export async function GET(
   request: NextRequest,
-  context: { params: { planId: string } } // Второй аргумент - это объект context
+  { params }: { params: Promise<{ planId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -23,7 +23,7 @@ export async function GET(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { planId } = context.params; // ★ 3. Получаем planId из context.params
+    const { planId } = await params; // ★ Используем 'await' для получения params
     if (!planId) {
       return new NextResponse("Plan ID is required", { status: 400 });
     }

@@ -42,7 +42,7 @@ export async function GET(
     );
 
     // 4. Отправка файла для скачивания
-    return new NextResponse(pdfStream as any, {
+    return new NextResponse(pdfStream as unknown as ReadableStream<any>, { // ★ Исправлено на безопасный тип
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

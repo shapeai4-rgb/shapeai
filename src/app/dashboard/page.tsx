@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useEffect, Suspense } from "react"; // ★ 1. Импортируем Suspense
+import React, { useMemo, useState, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import type { Plan } from "@/types";
 import Link from 'next/link';
@@ -14,31 +14,35 @@ import { PlanCard } from "@/components/shared/PlanCard";
 import { StaggeredFadeIn, itemVariants } from "@/components/ui/StaggeredFadeIn";
 import { motion } from "framer-motion";
 
-// ★★★ 2. СОЗДАЕМ НОВЫЙ КОМПОНЕНТ ДЛЯ ДИНАМИЧЕСКОЙ ЛОГИКИ ★★★
+// ★★★ 1. Компонент-обработчик вынесен наружу, чтобы быть чище ★★★
 function PaymentSuccessHandler() {
   const { update } = useSession();
-  const searchParams = useSearchParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Флаг, чтобы убедиться, что логика выполняется только один раз
+  const [isProcessing, setIsProcessing] = useState(searchParams.get('payment_success') === 'true');
 
   useEffect(() => {
-    if (searchParams.get('payment_success') === 'true') {
-      update();
-      // Используем window.history.replaceState для чистого удаления параметров без Next.js router
-      const newUrl = window.location.pathname;
-      window.history.replaceState({ ...window.history.state, as: newUrl, url: newUrl }, '', newUrl);
+    // Выполняем только если флаг установлен и еще не был обработан
+    if (isProcessing) {
+      update().finally(() => {
+        // После завершения обновления сессии, очищаем URL и сбрасываем флаг
+        router.replace('/dashboard', { scroll: false });
+        setIsProcessing(false);
+      });
     }
-  }, [searchParams, update, router]);
+  }, [isProcessing, update, router]);
 
-  return null; // Этот компонент не рендерит ничего видимого
+  return null; // Этот компонент ничего не рендерит
 }
 
-// --- Вспомогательный компонент TokenPill ---
 function TokenPill({ balance }: { balance: number }) {
   const used = 0;
   const total = 200;
   const pct = Math.min(100, Math.round((used / Math.max(1, total)) * 100));
 
-  return ( // ★★★ ДОБАВЬТЕ 'return' ЗДЕСЬ ★★★
+  return (
     <div className="flex items-center gap-3 rounded-2xl border border-accent/20 bg-accent/10 px-4 py-3 text-sm text-neutral-ink">
       <div className="relative grid size-10 place-items-center">
         <div className="absolute inset-0 rounded-full" style={{ background: `conic-gradient(#059669 ${pct * 3.6}deg, #E5E7EB ${pct * 3.6}deg)` }} />
@@ -58,7 +62,7 @@ function TokenPill({ balance }: { balance: number }) {
 
 // --- Главный компонент страницы Дашборда ---
 export default function DashboardPage() {
-  const { data: session, status } = useSession(); // ★ 3. Убрали 'update' отсюда
+  const { data: session, status } = useSession();
 
   const [plans] = useState<Plan[]>([]);
   const [query, setQuery] = useState("");
@@ -78,13 +82,13 @@ export default function DashboardPage() {
   }
 
   return (
-    // ★★★ 4. ОБЕРТКА Suspense ДОБАВЛЕНА ЗДЕСЬ ★★★
-    <Suspense fallback={<div>Loading...</div>}>
+    // ★★★ 2. Suspense теперь оборачивает только сам обработчик ★★★
+    <>
+      <Suspense fallback={null}>
+        <PaymentSuccessHandler />
+      </Suspense>
       <StaggeredFadeIn>
         <section className="mx-auto max-w-7xl px-4 py-8">
-          {/* Вызываем наш новый компонент-обработчик */}
-          <PaymentSuccessHandler />
-
           <motion.div variants={itemVariants} className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <h1 className="text-2xl md:text-3xl font-headings font-semibold tracking-tight">
@@ -130,6 +134,6 @@ export default function DashboardPage() {
           <p>Shopping list content for {shopFor?.title} will go here...</p>
         </Drawer>
       </StaggeredFadeIn>
-    </Suspense>
+    </>
   );
 }

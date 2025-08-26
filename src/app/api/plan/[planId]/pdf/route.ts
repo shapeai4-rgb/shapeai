@@ -7,10 +7,10 @@ import { PlanPdfDocument } from "@/components/pdf/PlanPdfDocument";
 import { type MealPlanData } from "@/types/pdf";
 import React from "react";
 
-// ★★★ 1. ИСПОЛЬЗУЕМ ПРАВИЛЬНУЮ СИГНАТУРУ NEXT.JS ★★★
+// ★★★ 1. ИСПОЛЬЗУЕМ ПРАВИЛЬНУЮ СИГНАТУРУ NEXT.JS 15+ ★★★
 export async function GET(
   request: Request,
-  { params }: { params: { planId: string } }
+  { params }: { params: Promise<{ planId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,7 +18,7 @@ export async function GET(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { planId } = params; // ★ 2. Получаем planId напрямую из params
+    const { planId } = await params; // ★ 2. ИСПОЛЬЗУЕМ 'await', ЧТОБЫ ПОЛУЧИТЬ PARAMS
     if (!planId) {
       return new NextResponse("Plan ID is required", { status: 400 });
     }

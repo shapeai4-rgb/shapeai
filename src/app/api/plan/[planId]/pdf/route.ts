@@ -5,15 +5,14 @@ import { prisma } from "@/lib/prisma";
 import { renderToStream } from "@react-pdf/renderer";
 import { PlanPdfDocument } from "@/components/pdf/PlanPdfDocument";
 import { type MealPlanData } from "@/types/pdf";
+import React from "react";
 
-// ★★★ 1. ОПРЕДЕЛЯЕМ ПРАВИЛЬНЫЙ ТИП ДЛЯ АРГУМЕНТА КОНТЕКСТА ★★★
 interface RouteContext {
   params: {
     planId: string;
   };
 }
 
-// ★★★ 2. ПРИМЕНЯЕМ ЭТОТ ТИП К ФУНКЦИИ GET ★★★
 export async function GET(request: Request, context: RouteContext) {
   try {
     const session = await getServerSession(authOptions);
@@ -21,7 +20,7 @@ export async function GET(request: Request, context: RouteContext) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { planId } = context.params; // ★ 3. Получаем planId из контекста
+    const { planId } = context.params;
     if (!planId) {
       return new NextResponse("Plan ID is required", { status: 400 });
     }
@@ -39,8 +38,11 @@ export async function GET(request: Request, context: RouteContext) {
 
     const planData = mealPlan.content as unknown as MealPlanData;
     
+    // ★★★ ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ ★★★
+    // Мы явно приводим наш элемент к базовому типу React.ReactElement,
+    // чтобы обойти строгую проверку пропсов в renderToStream.
     const pdfStream = await renderToStream(
-      <PlanPdfDocument plan={planData} />
+      React.createElement(PlanPdfDocument, { plan: planData }) as unknown as React.ReactElement<{}>
     );
 
     return new NextResponse(pdfStream as unknown as ReadableStream, {

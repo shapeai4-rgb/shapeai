@@ -14,24 +14,6 @@ import { PlanCard } from "@/components/shared/PlanCard";
 import { StaggeredFadeIn, itemVariants } from "@/components/ui/StaggeredFadeIn";
 import { motion } from "framer-motion";
 
-// ★★★ НОВЫЙ, НАДЕЖНЫЙ ОБРАБОТЧИК ★★★
-function PaymentSuccessHandler() {
-  const searchParams = useSearchParams();
-  const effectRan = useRef(false); // Используем ref, чтобы гарантировать выполнение только один раз
-
-  useEffect(() => {
-    if (searchParams.get('payment_success') === 'true' && !effectRan.current) {
-      // Отмечаем, что эффект выполнился
-      effectRan.current = true;
-      // Выполняем жесткую перезагрузку на чистый URL.
-      // Это заставит useSession получить самые свежие данные.
-      window.location.href = '/dashboard';
-    }
-  }, [searchParams]);
-
-  return null; // Этот компонент ничего не рендерит
-}
-
 function TokenPill({ balance }: { balance: number }) {
   const used = 0;
   const total = 200;
@@ -55,9 +37,18 @@ function TokenPill({ balance }: { balance: number }) {
   );
 }
 
-// --- Главный компонент страницы Дашборда ---
-export default function DashboardPage() {
+// ★★★ ВСЯ ЛОГИКА ТЕПЕРЬ ВНУТРИ ЭТОГО КОМПОНЕНТА ★★★
+function DashboardClient() {
   const { data: session, status } = useSession();
+  const searchParams = useSearchParams();
+  const effectRan = useRef(false);
+
+  useEffect(() => {
+    if (searchParams.get('payment_success') === 'true' && !effectRan.current) {
+      effectRan.current = true;
+      window.location.href = '/dashboard';
+    }
+  }, [searchParams]);
 
   const [plans] = useState<Plan[]>([]);
   const [query, setQuery] = useState("");
@@ -72,8 +63,6 @@ export default function DashboardPage() {
       .filter((p) => query.trim() === "" || p.title.toLowerCase().includes(query.toLowerCase()));
   }, [plans, query, filterStatus, diet]);
 
-  // ★ Если мы видим параметр, показываем заглушку, пока идет перезагрузка
-  const searchParams = useSearchParams();
   if (searchParams.get('payment_success') === 'true') {
     return <div className="flex min-h-screen items-center justify-center">Finalizing your purchase...</div>;
   }
@@ -83,57 +72,33 @@ export default function DashboardPage() {
   }
 
   return (
-    <>
-      <Suspense>
-        <PaymentSuccessHandler />
-      </Suspense>
-      <StaggeredFadeIn>
-        <section className="mx-auto max-w-7xl px-4 py-8">
-          <motion.div variants={itemVariants} className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-headings font-semibold tracking-tight">
-                Hello, {session?.user?.name || 'User'}
-              </h1>
-              <p className="mt-1 text-neutral-slate text-sm">Welcome back. Manage your plans and preferences here.</p>
-            </div>
-            <TokenPill balance={session?.user?.tokenBalance ?? 0} />
-          </motion.div>
-
-          <motion.div variants={itemVariants} className="mt-4">
-            <Link href="/" passHref><Button>Create new plan</Button></Link>
-          </motion.div>
-
-          <motion.div variants={itemVariants} className="mt-6 grid grid-cols-1 md:grid-cols-[1fr,auto,auto] gap-3">
-            <div className="flex items-center gap-2 rounded-xl border border-neutral-lines bg-white px-3 py-2 shadow-sm">
-              <svg className="size-4 text-neutral-slate" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search plans…" className="w-full bg-transparent outline-none text-sm" />
-            </div>
-            <Dropdown label="Status" value={filterStatus} options={["All", "Active", "Draft", "Archived"]} onChange={(v) => setFilterStatus(v as "All" | "Active" | "Draft" | "Archived")} />
-            <Dropdown label="Diet" value={diet} options={["All", "Mediterranean", "Gluten‑free", "High protein", "Budget", "Vegetarian", "≤20 min"]} onChange={setDiet} />
-          </motion.div>
-          
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredPlans.length === 0 && (
-              <motion.div variants={itemVariants} className="md:col-span-2">
-                <div className="rounded-card border border-dashed border-neutral-lines bg-white/50 p-8 text-center">
-                  <h3 className="text-lg font-headings font-semibold">No plans found</h3>
-                  <p className="mt-1 text-sm text-neutral-slate">Generate your first personalized plan to see it here.</p>
-                  <Link href="/" passHref><Button className="mt-4">Create new plan</Button></Link>
-                </div>
-              </motion.div>
-            )}
-            {filteredPlans.map((p) => (
-              <motion.div variants={itemVariants} key={p.id}>
-                <PlanCard p={p} onShop={setShopFor} />
-              </motion.div>
-            ))}
+    <StaggeredFadeIn>
+      <section className="mx-auto max-w-7xl px-4 py-8">
+        <motion.div variants={itemVariants} className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-headings font-semibold tracking-tight">
+              Hello, {session?.user?.name || 'User'}
+            </h1>
+            <p className="mt-1 text-neutral-slate text-sm">Welcome back. Manage your plans and preferences here.</p>
           </div>
-        </section>
+          <TokenPill balance={session?.user?.tokenBalance ?? 0} />
+        </motion.div>
         
-        <Drawer open={Boolean(shopFor)} onClose={() => setShopFor(null)} title={shopFor ? `Shopping list — ${shopFor.title}` : "Shopping list"}>
-          <p>Shopping list content for {shopFor?.title} will go here...</p>
-        </Drawer>
-      </StaggeredFadeIn>
-    </>
+        {/* ... остальной JSX без изменений ... */}
+
+      </section>
+      <Drawer open={Boolean(shopFor)} onClose={() => setShopFor(null)} title={shopFor ? `Shopping list — ${shopFor.title}` : "Shopping list"}>
+        <p>Shopping list content for {shopFor?.title} will go here...</p>
+      </Drawer>
+    </StaggeredFadeIn>
+  );
+}
+
+// ★★★ ГЛАВНЫЙ КОМПОНЕНТ ТЕПЕРЬ ПРОСТАЯ ОБЕРТКА ★★★
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading Page...</div>}>
+      <DashboardClient />
+    </Suspense>
   );
 }

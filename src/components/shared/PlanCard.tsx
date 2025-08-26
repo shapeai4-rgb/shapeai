@@ -32,7 +32,9 @@ export function PlanCard({ p, onShop }: { p: Plan; onShop: (plan: Plan) => void 
           <p className="mt-1 text-sm text-neutral-slate">{p.days} days · {p.kcalTarget} kcal/day target · created {fmtDate(p.createdAt)}</p>
           <div className="mt-3 flex flex-wrap gap-2">{p.dietTags.map(t => <Tag key={t}>{t}</Tag>)}{p.glp1 && <Tag>GLP‑1</Tag>}</div>
         </div>
-        <div className="hidden sm:block w-40"><MacroBar macro={p.macroTarget} /></div>
+        <div className="hidden sm:block w-40">
+          {p.macroTarget && <MacroBar macro={p.macroTarget} />}
+        </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-3">
         <Link href={`/plan/${p.id}`} passHref>

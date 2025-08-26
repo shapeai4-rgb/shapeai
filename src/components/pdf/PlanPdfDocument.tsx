@@ -23,46 +23,45 @@ export function PlanPdfDocument({ plan }: { plan: MealPlanData }) {
       {/* --- Обложка --- */}
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.title}>{plan.title}</Text>
+          <Text style={styles.title}>{plan?.title ?? 'Personalized Meal Plan'}</Text>
           <Text style={{ fontSize: 10, color: '#555' }}>ShapeAI.co.uk</Text>
         </View>
         <View style={styles.section}>
-          <Text>Prepared for: {plan.user.name}</Text>
-          <Text>Daily Target: ~{plan.targets.daily_kcal} kcal</Text>
+          <Text>Prepared for: {plan?.user?.name ?? 'Valued User'}</Text>
+          <Text>Daily Target: ~{plan?.targets?.daily_kcal ?? 0} kcal</Text>
           <Text style={{ fontSize: 10, color: '#555' }}>
-            Macros: P {plan.targets.daily_macros.protein_g}g · F {plan.targets.daily_macros.fat_g}g · C {plan.targets.daily_macros.carbs_g}g
+            Macros: P {plan?.targets?.daily_macros?.protein_g ?? 0}g · F {plan?.targets?.daily_macros?.fat_g ?? 0}g · C {plan?.targets?.daily_macros?.carbs_g ?? 0}g
           </Text>
         </View>
         <View style={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <Text style={{ fontSize: 10, color: '#aaa' }}>(QR Code for {plan.pdf.qr_url} will be here)</Text>
+            <Text style={{ fontSize: 10, color: '#aaa' }}>(QR Code for {plan?.pdf?.qr_url ?? ''} will be here)</Text>
         </View>
-        <Text style={styles.footer}>© {new Date().getFullYear()} ShapeAI. All rights reserved. For personal use only.</Text>
+        <Text style={styles.footer}>© {new Date().getFullYear()} ShapeAI. All rights reserved.</Text>
       </Page>
 
       {/* --- Дни Плана --- */}
-      {plan.days.map((day: Day) => (
+      {plan?.days?.map((day: Day) => (
         <Page key={day.day} size="A4" style={styles.page}>
           <Text style={styles.dayTitle}>Day {day.day}</Text>
           <View style={styles.section}>
             {day.meals.map((meal: Meal) => {
-              const recipe = plan.recipes[meal.recipe_id];
-              if (!recipe) {
-                return null;
-              }
+              const recipe = plan.recipes?.[meal.recipe_id];
+              if (!recipe) return null;
+
               return (
-              <View key={meal.type} style={styles.mealCard}>
-                <Text style={styles.mealTitle}>
-                  {meal.type.charAt(0).toUpperCase() + meal.type.slice(1)} — {plan.recipes[meal.recipe_id]?.title ?? 'Unnamed Meal'}
-                </Text>
-                <Text style={{ fontSize: 10, color: '#555' }}>
-                  {plan.recipes[meal.recipe_id]?.portion ?? ''} · {meal.kcal} kcal
-                </Text>
-                <View style={styles.macroRow}>
-                  <Text>Protein: {meal.protein_g}g</Text>
-                  <Text>Fat: {meal.fat_g}g</Text>
-                  <Text>Carbs: {meal.carbs_g}g</Text>
+                <View key={meal.type + meal.recipe_id} style={styles.mealCard}>
+                  <Text style={styles.mealTitle}>
+                    {meal.type.charAt(0).toUpperCase() + meal.type.slice(1)} — {recipe.title}
+                  </Text>
+                  <Text style={{ fontSize: 10, color: '#555' }}>
+                    {recipe.portion} · {meal.kcal} kcal
+                  </Text>
+                  <View style={styles.macroRow}>
+                    <Text>Protein: {meal.protein_g}g</Text>
+                    <Text>Fat: {meal.fat_g}g</Text>
+                    <Text>Carbs: {meal.carbs_g}g</Text>
+                  </View>
                 </View>
-              </View>
               );
             })}
           </View>
@@ -73,7 +72,7 @@ export function PlanPdfDocument({ plan }: { plan: MealPlanData }) {
       {/* --- Список Покупок --- */}
       <Page size="A4" style={styles.page}>
         <Text style={styles.title}>Shopping List</Text>
-        {plan.shopping_list.by_category.map((category: ShoppingCategory) => (
+        {plan?.shopping_list?.by_category?.map((category: ShoppingCategory) => (
           <View key={category.category}>
             <Text style={styles.shoppingCat}>{category.category}</Text>
             {category.items.map((item: ShoppingItem) => (
@@ -81,7 +80,7 @@ export function PlanPdfDocument({ plan }: { plan: MealPlanData }) {
             ))}
           </View>
         ))}
-        <Text style={styles.footer}>{plan.legal.medical_disclaimer}</Text>
+        <Text style={styles.footer}>{plan?.legal?.medical_disclaimer ?? ''}</Text>
       </Page>
     </Document>
   );

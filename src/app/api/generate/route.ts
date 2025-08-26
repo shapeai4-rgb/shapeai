@@ -44,6 +44,10 @@ export async function POST(request: Request) {
 
       SCHEMA:
       - title: string (e.g., "Weight Loss — ${days}-Day Personalized Plan")
+      - user: { name: string } (Use the user's first name if available, otherwise use "User")
+      - targets: { daily_kcal: number, daily_macros: { protein_g: number, fat_g: number, carbs_g: number } }
+      - pdf: { qr_url: string } (Use a placeholder URL like "https://shapeai.co.uk/plan/PLAN_ID_PLACEHOLDER")
+      - legal: { medical_disclaimer: string } (Use a standard disclaimer)
       - days: Day[] (An array of day objects, length must be exactly ${days})
       - recipes: Record<string, Recipe> (A dictionary of all unique recipes used in the plan)
       - shopping_list: ShoppingList (An aggregated shopping list for the entire plan)

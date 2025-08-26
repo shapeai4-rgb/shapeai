@@ -5,14 +5,16 @@ import { motion, type MotionProps } from 'framer-motion';
 import { Lock } from 'lucide-react';
 import { cn } from '@/lib/utils'; // ★★★ 1. Импортируем новую функцию 'cn'
 
-type ButtonProps = React.ComponentProps<'button'> & MotionProps & {
+type ButtonProps = {
+  as?: React.ElementType;
   locked?: boolean;
-};
+} & React.ComponentProps<'button'> & MotionProps;
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, children, locked, ...props }, ref) => {
+  ({ as: Component = 'button', className, children, locked, ...props }, ref) => {
+    const MotionComponent = motion(Component);
     return (
-      <motion.button
+      <MotionComponent
         ref={ref}
         whileHover={{ scale: locked ? 1 : 1.03, y: locked ? 0 : -2 }}
         whileTap={{ scale: locked ? 1 : 0.98 }}
@@ -31,7 +33,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {children}
         {locked && <Lock className="ml-2 h-4 w-4" />}
-      </motion.button>
+      </MotionComponent>
     );
   }
 );

@@ -38,7 +38,9 @@ export function PlanCard({ p, onShop }: { p: Plan; onShop: (plan: Plan) => void 
         <Link href={`/plan/${p.id}`} passHref>
           <Button className="px-3 py-2 text-sm">View online</Button>
         </Link>
-        <Button className="px-3 py-2 text-sm bg-white text-neutral-ink border border-neutral-lines hover:bg-neutral-mist">Download PDF</Button>
+        <a href={`/api/plan/${p.id}/pdf`} download>
+            <Button as="span" className="px-3 py-2 text-sm bg-white text-neutral-ink border border-neutral-lines hover:bg-neutral-mist">Download PDF</Button>
+        </a>
         <Button onClick={() => onShop(p)} className="px-3 py-2 text-sm bg-white text-neutral-ink border border-neutral-lines hover:bg-neutral-mist">Shopping list</Button>
       </div>
     </article>

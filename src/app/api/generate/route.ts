@@ -1,21 +1,19 @@
-// src/app/api/generate/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import OpenAI from "openai";
 
-// 1. Инициализируем клиент OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Определяем тип для входящего запроса для безопасности
+// ★★★ 1. ИСПРАВЛЕНИЕ ТИПОВ ★★★
 interface GenerateApiRequest {
   freeText: string;
   days: number;
-  goals: object;
-  structure: object;
+  goals: Record<string, unknown>; // Заменено с 'object'
+  structure: Record<string, unknown>; // Заменено с 'object'
   diet: {
     types: string[];
     [key: string]: unknown;
@@ -24,7 +22,6 @@ interface GenerateApiRequest {
 
 export async function POST(request: Request) {
   try {
-    // --- Шаг 1: Проверка сессии и баланса токенов ---
     const session = await getServerSession(authOptions);
     if (!session || !session.user || !session.user.id) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -40,15 +37,11 @@ export async function POST(request: Request) {
       return new NextResponse("Insufficient tokens", { status: 402 });
     }
 
-    // --- Шаг 2: Получение данных из фронтенд-формы ---
     const { freeText, days, goals, structure, diet }: GenerateApiRequest = await request.json();
     if (!days || !goals || !structure || !diet) {
       return new NextResponse("Invalid request body. Missing required fields.", { status: 400 });
     }
     
-    // --- Шаг 3: Вызов OpenAI API ---
-    
-    // Промпт разделен на 'system' (инструкции) и 'user' (данные) для лучшего качества
     const systemPrompt = `
       You are a nutrition assistant. Create a personalized weight-loss meal plan.
       STRICT OUTPUT FORMAT:
@@ -76,7 +69,7 @@ export async function POST(request: Request) {
     try {
       const completion = await openai.chat.completions.create({
         model: "gpt-4o",
-        response_format: { type: "json_object" }, // Гарантирует возврат валидного JSON
+        response_format: { type: "json_object" },
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
@@ -87,22 +80,10 @@ export async function POST(request: Request) {
       console.error("OpenAI API call failed:", err);
       return new NextResponse("The AI model failed to respond.", { status: 504 });
     }
-
-    // --- Шаг 4: Безопасный парсинг и сохранение в БД ---
     
-    function tryParseJson(s: string) {
-      try { 
-        return JSON.parse(s); 
-      } catch (e) {
-        console.error("Failed to parse JSON from AI:", s, e);
-        return null;
-      }
-    }
-
-    const generatedPlan = tryParseJson(textResponse);
+    const generatedPlan = JSON.parse(textResponse);
 
     if (!generatedPlan) {
-      console.error("Model returned invalid or unparsable JSON:\n", textResponse);
       return new NextResponse("AI returned an invalid response format.", { status: 502 });
     }
     
@@ -112,13 +93,12 @@ export async function POST(request: Request) {
         content: generatedPlan,
         title: `AI Plan created on ${new Date().toLocaleDateString()}`,
         days: days,
-        kcalTarget: 0, // Placeholder
+        kcalTarget: 0,
         status: "Active",
         dietTags: diet.types || [],
       }
     });
     
-    // --- Шаг 5: Списание токена и возврат результата ---
     await prisma.user.update({
       where: { id: userId },
       data: { tokenBalance: { decrement: 1 } },

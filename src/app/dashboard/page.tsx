@@ -13,6 +13,7 @@ import { Drawer } from "@/components/ui/Drawer";
 import { PlanCard } from "@/components/shared/PlanCard";
 import { StaggeredFadeIn, itemVariants } from "@/components/ui/StaggeredFadeIn";
 import { motion } from "framer-motion";
+import axios from 'axios';
 
 // ★★★ ОБРАБОТЧИК ДЛЯ ДИНАМИЧЕСКОЙ ЛОГИКИ ★★★
 function PaymentRedirectHandler() {
@@ -72,7 +73,31 @@ function TokenPill({ balance }: { balance: number }) {
 // ★★★ ОСНОВНОЙ КЛИЕНТСКИЙ КОМПОНЕНТ ДЛЯ ОТОБРАЖЕНИЯ UI ★★★
 function DashboardClient() {
   const { data: session, status } = useSession();
-  const [plans] = useState<Plan[]>([]);
+  
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [isLoadingPlans, setIsLoadingPlans] = useState(true);
+
+  // Этот useEffect будет загружать планы пользователя при загрузке страницы
+  useEffect(() => {
+    if (status === 'authenticated') {
+      setIsLoadingPlans(true);
+      axios.get<Plan[]>('/api/plans') // ★ Указываем ожидаемый тип ответа
+        .then(response => {
+          setPlans(response.data);
+        })
+        .catch((error: Error) => { // ★ Типизируем ошибку
+          console.error("Failed to fetch plans:", error.message);
+        })
+        .finally(() => {
+          setIsLoadingPlans(false);
+        });
+    }
+    // Если пользователь не аутентифицирован, просто прекращаем загрузку
+    if (status === 'unauthenticated') {
+      setIsLoadingPlans(false);
+    }
+  }, [status]);
+
   const [query, setQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<"All" | "Active" | "Draft" | "Archived">("All");
   const [diet, setDiet] = useState<string>("All");
@@ -116,7 +141,9 @@ function DashboardClient() {
         </motion.div>
         
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredPlans.length === 0 && (
+          {isLoadingPlans ? (
+            <div className="md:col-span-2 text-center p-8">Loading plans...</div>
+          ) : filteredPlans.length === 0 ? (
             <motion.div variants={itemVariants} className="md:col-span-2">
               <div className="rounded-card border border-dashed border-neutral-lines bg-white/50 p-8 text-center">
                 <h3 className="text-lg font-headings font-semibold">No plans found</h3>
@@ -124,12 +151,13 @@ function DashboardClient() {
                 <Link href="/" passHref><Button className="mt-4">Create new plan</Button></Link>
               </div>
             </motion.div>
+          ) : (
+            filteredPlans.map((p) => (
+              <motion.div variants={itemVariants} key={p.id}>
+                <PlanCard p={p} onShop={setShopFor} />
+              </motion.div>
+            ))
           )}
-          {filteredPlans.map((p) => (
-            <motion.div variants={itemVariants} key={p.id}>
-              <PlanCard p={p} onShop={setShopFor} />
-            </motion.div>
-          ))}
         </div>
       </section>
       
@@ -140,7 +168,7 @@ function DashboardClient() {
   );
 }
 
-// ★★★ ГЛАВНЫЙ КОМПОНЕНТ-ЭКСПОРТ, КОТОРЫЙ ОБОРАЧИВАЕТ ВСЕ В Suspense ★★★
+// ★★★ ГЛАВНЫЙ КОМПОНЕНТ-ЭКСПОРТ (ОБЕРТКА) ★★★
 export default function DashboardPage() {
   return (
     <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading Page...</div>}>

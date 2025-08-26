@@ -114,41 +114,41 @@ export default function HomePage() {
   const [authMode, setAuthMode] = useState<"login" | "signup" | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
-  const handleGenerate = async (formData: GeneratorFormData) => {
+    const handleGenerate = async (formData: GeneratorFormData) => {
     setLoading(true);
-    setPreview(null);
+    // Прежний setPreview(null) можно оставить или убрать, так как мы будем перенаправлять
+    
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
+
       if (!response.ok) {
         const errorText = await response.text();
         alert(`Error: ${errorText}`);
         setLoading(false);
         return;
       }
-      const generatedPlan = await response.json() as Record<string, DayPlan>;
-      const firstDayKey = Object.keys(generatedPlan)[0];
-      if (!firstDayKey || !generatedPlan[firstDayKey]) { throw new Error("AI response is missing meal data for the first day."); }
-      const firstDayMeals = generatedPlan[firstDayKey];
-      const formattedPreview = Object.entries(firstDayMeals).map(([mealType, mealDetails], index) => ({
-        id: `ai-${mealType}-${index}`,
-        title: mealDetails.title,
-        kcal: mealDetails.kcal || 0,
-        macro: { protein: 0, fat: 0, carbs: 0 },
-        time: "AI",
-        portion: "Generated",
-      }));
-      setPreview(formattedPreview);
+
+      // ★ Получаем ID плана из нового ответа API
+      const { planId } = await response.json();
+      
+      if (planId) {
+        // ★ И сразу перенаправляем пользователя на страницу нового плана
+        window.location.href = `/plan/${planId}`;
+      } else {
+        throw new Error("Plan ID was not returned from the API.");
+      }
     } catch (error) {
       console.error("Failed to generate plan:", error);
       alert("An error occurred while generating the plan.");
-      setPreview(MOCK_RECIPES);
+      // В случае ошибки можно вернуть моковые рецепты для превью
+      setPreview(MOCK_RECIPES); 
+      setLoading(false);
     }
-    setLoading(false);
-    previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // setLoading(false) в случае успеха не нужен, так как страница все равно перенаправится
   };
 
   return (

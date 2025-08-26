@@ -1,21 +1,18 @@
-// src/app/api/generate/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import OpenAI from "openai";
 
-// 1. Инициализируем клиент OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Определяем тип для входящего запроса для безопасности
 interface GenerateApiRequest {
   freeText: string;
   days: number;
-  goals: object;
-  structure: object;
+  goals: Record<string, unknown>;
+  structure: Record<string, unknown>;
   diet: {
     types: string[];
     [key: string]: unknown;
@@ -24,59 +21,69 @@ interface GenerateApiRequest {
 
 export async function POST(request: Request) {
   try {
-    // --- Шаг 1: Проверка сессии и баланса токенов ---
+    // --- Шаг 1: Проверка сессии (без изменений) ---
     const session = await getServerSession(authOptions);
     if (!session || !session.user || !session.user.id) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
     const userId = session.user.id;
-
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      return new NextResponse("User not found", { status: 404 });
-    }
-
-    if (user.tokenBalance <= 0) {
+    if (!user || user.tokenBalance <= 0) {
       return new NextResponse("Insufficient tokens", { status: 402 });
     }
 
-    // --- Шаг 2: Получение данных из фронтенд-формы ---
-    const { freeText, days, goals, structure, diet }: GenerateApiRequest = await request.json();
-    if (!days || !goals || !structure || !diet) {
-      return new NextResponse("Invalid request body. Missing required fields.", { status: 400 });
-    }
+    // --- Шаг 2: Получение данных (без изменений) ---
+    const formData: GenerateApiRequest = await request.json();
+    const { days } = formData;
     
-    // --- Шаг 3: Вызов OpenAI API ---
-    
-    // Промпт разделен на 'system' (инструкции) и 'user' (данные) для лучшего качества
+    // ★★★ 3. НОВЫЙ, ПРОДВИНУТЫЙ ПРОМПТ ДЛЯ СЛОЖНОГО JSON ★★★
     const systemPrompt = `
-      You are a nutrition assistant. Create a personalized weight-loss meal plan.
-      STRICT OUTPUT FORMAT:
-      - Respond ONLY with a valid JSON object (no extra text, no markdown).
-      - Top-level MUST contain exactly ${days} keys: "day1" … "day${days}".
-      - Each day MUST include meals: "breakfast", "lunch", "dinner".
-      - If snacks are allowed (see inputs), include optional "snacks": [{ "title": string, "kcal": number }] (can be empty).
-      - For every meal provide at least: { "title": string, "kcal": number }.
-      - Numbers MUST be numbers (e.g., 450), not strings.
-      - Do NOT include any keys other than the day keys at the top level.
+      You are an expert nutritionist AI. Create a detailed, personalized ${days}-day meal plan.
+      Your response MUST be a single, valid JSON object that strictly adheres to the following schema.
+      Do not include any text, markdown, or explanations outside of the JSON object.
+
+      SCHEMA:
+      - title: string (e.g., "Weight Loss — ${days}-Day Personalized Plan")
+      - days: Day[] (An array of day objects, length must be exactly ${days})
+      - recipes: Record<string, Recipe> (A dictionary of all unique recipes used in the plan)
+      - shopping_list: ShoppingList (An aggregated shopping list for the entire plan)
+
+      Day Object Schema:
+      - day: number (e.g., 1)
+      - summary: { kcal: number, protein_g: number, fat_g: number, carbs_g: number } (Totals for the day)
+      - meals: Meal[] (An array of meals for the day)
+
+      Meal Object Schema:
+      - type: "breakfast" | "lunch" | "snack" | "dinner"
+      - recipe_id: string (A unique ID, e.g., "r_oats_1". MUST match a key in the main 'recipes' object)
+      - kcal: number
+      - protein_g: number
+      - fat_g: number
+      - carbs_g: number
+
+      Recipe Object Schema (for the main 'recipes' dictionary):
+      - title: string (e.g., "Greek Chicken Bowl")
+      - portion: string (e.g., "1 bowl (380 g)")
+      - ingredients: { name: string, qty: number, unit: string }[]
+      - instructions: string[]
+
+      ShoppingList Schema:
+      - by_category: { category: string, items: { name: string, qty: number, unit: string }[] }[]
+      
+      RULES:
+      1.  Generate unique recipe_id for each distinct meal (e.g., r_oats_1, r_salmon_2).
+      2.  Every recipe_id used in the 'days' array MUST have a corresponding entry in the 'recipes' object.
+      3.  The 'shopping_list' must be aggregated for the entire week. Sum up the quantities of identical ingredients.
+      4.  Base the plan on the user's detailed preferences provided in the user prompt.
     `;
     
-    const userPrompt = `
-      Generate a ${days}-day plan based on the following user data:
-      {
-        "freeText": ${JSON.stringify(freeText)},
-        "days": ${days},
-        "goals": ${JSON.stringify(goals)},
-        "structure": ${JSON.stringify(structure)},
-        "diet": ${JSON.stringify(diet)}
-      }
-    `;
+    const userPrompt = `Generate the meal plan based on this user data: ${JSON.stringify(formData)}`;
 
     let textResponse: string;
     try {
       const completion = await openai.chat.completions.create({
         model: "gpt-4o",
-        response_format: { type: "json_object" }, // Гарантирует возврат валидного JSON
+        response_format: { type: "json_object" },
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
@@ -87,44 +94,33 @@ export async function POST(request: Request) {
       console.error("OpenAI API call failed:", err);
       return new NextResponse("The AI model failed to respond.", { status: 504 });
     }
-
-    // --- Шаг 4: Безопасный парсинг и сохранение в БД ---
     
-    function tryParseJson(s: string) {
-      try { 
-        return JSON.parse(s); 
-      } catch (e) {
-        console.error("Failed to parse JSON from AI:", s, e);
-        return null;
-      }
-    }
-
-    const generatedPlan = tryParseJson(textResponse);
-
-    if (!generatedPlan) {
-      console.error("Model returned invalid or unparsable JSON:\n", textResponse);
+    const generatedPlan = JSON.parse(textResponse);
+    if (!generatedPlan || !generatedPlan.days || !generatedPlan.recipes) {
+      console.error("Model returned invalid JSON structure:\n", textResponse);
       return new NextResponse("AI returned an invalid response format.", { status: 502 });
     }
     
-    await prisma.mealPlan.create({
+    // --- Шаг 4: Сохранение и списание токена (без изменений) ---
+    const createdPlan = await prisma.mealPlan.create({
       data: {
         userId: userId,
         content: generatedPlan,
-        title: `AI Plan created on ${new Date().toLocaleDateString()}`,
+        title: generatedPlan.title || `AI Plan created on ${new Date().toLocaleDateString()}`,
         days: days,
-        kcalTarget: 0, // Placeholder
+        kcalTarget: generatedPlan.targets?.daily_kcal || 0,
         status: "Active",
-        dietTags: diet.types || [],
+        dietTags: formData.diet.types || [],
       }
     });
     
-    // --- Шаг 5: Списание токена и возврат результата ---
     await prisma.user.update({
       where: { id: userId },
       data: { tokenBalance: { decrement: 1 } },
     });
     
-    return NextResponse.json(generatedPlan);
+    // Возвращаем ID созданного плана, чтобы можно было сразу перейти на его страницу
+    return NextResponse.json({ planId: createdPlan.id });
 
   } catch (error) {
     console.error("GENERATE_API_ERROR", error);

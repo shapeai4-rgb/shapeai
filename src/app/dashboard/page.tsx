@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useMemo, useState, useEffect, Suspense } from "react";
+import React, { useMemo, useState, useEffect, Suspense, useRef } from "react";
 import { useSession } from "next-auth/react";
 import type { Plan } from "@/types";
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 // --- Компоненты ---
 import { Button } from "@/components/ui/Button";
@@ -14,25 +14,20 @@ import { PlanCard } from "@/components/shared/PlanCard";
 import { StaggeredFadeIn, itemVariants } from "@/components/ui/StaggeredFadeIn";
 import { motion } from "framer-motion";
 
-// ★★★ 1. Компонент-обработчик вынесен наружу, чтобы быть чище ★★★
+// ★★★ НОВЫЙ, НАДЕЖНЫЙ ОБРАБОТЧИК ★★★
 function PaymentSuccessHandler() {
-  const { update } = useSession();
-  const router = useRouter();
   const searchParams = useSearchParams();
-  
-  // Флаг, чтобы убедиться, что логика выполняется только один раз
-  const [isProcessing, setIsProcessing] = useState(searchParams.get('payment_success') === 'true');
+  const effectRan = useRef(false); // Используем ref, чтобы гарантировать выполнение только один раз
 
   useEffect(() => {
-    // Выполняем только если флаг установлен и еще не был обработан
-    if (isProcessing) {
-      update().finally(() => {
-        // После завершения обновления сессии, очищаем URL и сбрасываем флаг
-        router.replace('/dashboard', { scroll: false });
-        setIsProcessing(false);
-      });
+    if (searchParams.get('payment_success') === 'true' && !effectRan.current) {
+      // Отмечаем, что эффект выполнился
+      effectRan.current = true;
+      // Выполняем жесткую перезагрузку на чистый URL.
+      // Это заставит useSession получить самые свежие данные.
+      window.location.href = '/dashboard';
     }
-  }, [isProcessing, update, router]);
+  }, [searchParams]);
 
   return null; // Этот компонент ничего не рендерит
 }
@@ -77,14 +72,19 @@ export default function DashboardPage() {
       .filter((p) => query.trim() === "" || p.title.toLowerCase().includes(query.toLowerCase()));
   }, [plans, query, filterStatus, diet]);
 
+  // ★ Если мы видим параметр, показываем заглушку, пока идет перезагрузка
+  const searchParams = useSearchParams();
+  if (searchParams.get('payment_success') === 'true') {
+    return <div className="flex min-h-screen items-center justify-center">Finalizing your purchase...</div>;
+  }
+
   if (status === 'loading') {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
   }
 
   return (
-    // ★★★ 2. Suspense теперь оборачивает только сам обработчик ★★★
     <>
-      <Suspense fallback={null}>
+      <Suspense>
         <PaymentSuccessHandler />
       </Suspense>
       <StaggeredFadeIn>

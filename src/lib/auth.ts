@@ -1,3 +1,4 @@
+// src/lib/auth.ts
 import { NextAuthOptions } from "next-auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import GoogleProvider from "next-auth/providers/google";
@@ -31,17 +32,27 @@ export const authOptions: NextAuthOptions = {
   ],
   session: { strategy: "jwt" },
   callbacks: {
+    // Этот колбэк обогащает JWT токен данными сразу после входа
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.tokenBalance = (user as unknown as { tokenBalance: number }).tokenBalance;
+        token.tokenBalance = user.tokenBalance ?? 0;
       }
       return token;
     },
+    // Этот колбэк обогащает объект сессии данными из JWT и БД
     async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string;
-        session.user.tokenBalance = token.tokenBalance as number;
+      if (token && session.user) {
+        session.user.id = token.id;
+        
+        // ★★★ КЛЮЧЕВОЙ ШАГ: Получаем самый свежий баланс из БД ★★★
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id },
+          select: { tokenBalance: true },
+        });
+
+        // Записываем актуальный баланс в сессию, которая уйдет на клиент
+        session.user.tokenBalance = dbUser?.tokenBalance ?? 0;
       }
       return session;
     },

@@ -65,7 +65,7 @@ export async function POST(request: Request) {
         },
         quantity: 1,
       });
-    } else if (customAmount && customAmount >= 500) { // Stripe has a minimum amount, usually 0.50 USD/EUR
+    } else if (customAmount && customAmount >= 50) { // Lowered minimum to 0.50 EUR/GBP
       // --- Custom Amount Logic ---
       line_items.push({
         price_data: {

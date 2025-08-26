@@ -1,3 +1,4 @@
+// src/app/page.tsx
 'use client';
 
 import React, { useState, useRef } from "react";
@@ -78,7 +79,12 @@ function TopUpCard({ plan, onSelect, isLoggedIn }: { plan: TopUpPlan; onSelect: 
         ) : ( <div className="mt-2 text-2xl font-headings font-semibold">{formatCurrency(currency, Number(priceInSelected?.toFixed(0) ?? 0), { trimCents: true })}</div> )}
         {plan.tokens && <div className="mt-1 text-xs text-neutral-slate">≈ {plan.tokens.toLocaleString()} tokens</div>}
         <div className="mt-4 text-xs text-neutral-slate"> {isLoggedIn ? 'Proceed to checkout' : 'Sign in to Top‑up'} </div>
-        <Button onClick={handleCheckout} locked={plan.custom && !valid} disabled={isRedirecting} className="w-full mt-2 text-sm py-2"> {isRedirecting ? 'Redirecting...' : (isLoggedIn ? `Top‑up ${formatCurrency(currency, Number(priceInSelected?.toFixed(0) ?? 0), { trimCents: true })}` : 'Sign up to Top-up')} </Button>
+        <Button onClick={handleCheckout} locked={plan.custom && !valid} disabled={isRedirecting} className="w-full mt-2 text-sm py-2"> {isRedirecting ? 'Redirecting...' : (
+            isLoggedIn 
+              ? (plan.custom ? `Top-up ${formatCurrency(currency, priceInSelected ?? 0)}` : `Top-up ${formatCurrency(currency, priceInSelected ?? 0, { trimCents: true })}`)
+              : 'Sign up to Top-up'
+          )}
+        </Button>
       </article>
     </AnimatedCard>
   );

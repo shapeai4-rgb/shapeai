@@ -99,7 +99,11 @@ function TopUpCard({ plan, onSelect, isLoggedIn }: { plan: TopUpPlan; onSelect: 
           {isLoggedIn ? 'Proceed to checkout' : 'Sign in to Top-up'}
         </div>
         <Button onClick={handleCheckout} locked={plan.custom && !valid} disabled={isRedirecting} className="w-full mt-2 text-sm py-2">
-          {isRedirecting ? 'Redirecting...' : (isLoggedIn ? `Top‑up ${formatCurrency(currency, Number(priceInSelected?.toFixed(0) ?? 0), { trimCents: true })}` : 'Sign up to Top-up')}
+        {isRedirecting ? 'Redirecting...' : (
+            isLoggedIn 
+              ? (plan.custom ? `Top-up ${formatCurrency(currency, priceInSelected ?? 0)}` : `Top-up ${formatCurrency(currency, priceInSelected ?? 0, { trimCents: true })}`)
+              : 'Sign up to Top-up'
+          )}
         </Button>
       </article>
     </AnimatedCard>

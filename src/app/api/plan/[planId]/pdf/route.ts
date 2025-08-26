@@ -7,10 +7,13 @@ import { PlanPdfDocument } from "@/components/pdf/PlanPdfDocument";
 import { type MealPlanData } from "@/types/pdf";
 import React from "react";
 
-// ★★★ 1. ИСПОЛЬЗУЕМ ПРАВИЛЬНУЮ СИГНАТУРУ NEXT.JS ★★★
+// ★★★ 1. ДОБАВЛЯЕМ ЭКСПОРТ, ЧТОБЫ ГАРАНТИРОВАТЬ ДИНАМИЧЕСКИЙ РЕНДЕРИНГ ★★★
+export const dynamic = 'force-dynamic';
+
+// ★★★ 2. ИСПОЛЬЗУЕМ ПРАВИЛЬНУЮ СИГНАТУРУ NEXT.JS ★★★
 export async function GET(
   request: Request,
-  context: { params: { planId: string } } // Второй аргумент - это объект context
+  { params }: { params: { planId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,7 +21,7 @@ export async function GET(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { planId } = context.params; // ★ 2. Получаем planId из context.params
+    const { planId } = params;
     if (!planId) {
       return new NextResponse("Plan ID is required", { status: 400 });
     }

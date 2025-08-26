@@ -11,7 +11,6 @@ export async function GET(
   { params }: { params: { planId: string } }
 ) {
   try {
-    // 1. Проверка авторизации
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -22,11 +21,10 @@ export async function GET(
       return new NextResponse("Plan ID is required", { status: 400 });
     }
 
-    // 2. Поиск плана в БД + проверка, что он принадлежит текущему пользователю
     const mealPlan = await prisma.mealPlan.findUnique({
       where: {
         id: planId,
-        userId: session.user.id, // Гарантирует, что пользователь может скачать только свой план
+        userId: session.user.id,
       },
     });
 
@@ -34,15 +32,15 @@ export async function GET(
       return new NextResponse("Plan not found or access denied", { status: 404 });
     }
 
-    // 3. Рендеринг React-компонента в PDF-поток
-    const planData = mealPlan.content as unknown as MealPlanData; // ★ Сначала приводим тип
+    const planData = mealPlan.content as unknown as MealPlanData;
     
     const pdfStream = await renderToStream(
-      <PlanPdfDocument plan={planData} /> // ★ Затем используем переменную
+      <PlanPdfDocument plan={planData} />
     );
 
-    // 4. Отправка файла для скачивания
-    return new NextResponse(pdfStream as unknown as ReadableStream<any>, { // ★ Исправлено на безопасный тип
+    // ★★★ ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ ★★★
+    // Используем 'unknown' для безопасного приведения типов, чтобы обойти ошибку ESLint
+    return new NextResponse(pdfStream as unknown as ReadableStream, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",

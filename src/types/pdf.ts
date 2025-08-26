@@ -11,12 +11,15 @@ export interface Meal {
   }
   
   export interface Day {
-    day: number;
-    summary: {
-      kcal: number;
-    };
-    meals: Meal[];
-  }
+  day: number;
+  summary: {
+    kcal: number;
+    protein_g: number; // ★ Добавлено
+    fat_g: number;     // ★ Добавлено
+    carbs_g: number;   // ★ Добавлено
+  };
+  meals: Meal[];
+}
   
   export interface RecipeDetail {
     title: string;

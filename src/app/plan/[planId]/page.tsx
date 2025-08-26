@@ -1,72 +1,38 @@
-'use client';
+import { getServerSession } from "next-auth";
+import { notFound } from 'next/navigation';
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { type MealPlanData } from "@/types/pdf";
 
-import React, { useState } from 'react';
-import Link from 'next/link';
+import PlanClient from './plan-client'; // Импортируем наш клиентский компонент
 
-// --- Компоненты ---
-import { Button } from '@/components/ui/Button';
-import { Drawer } from '@/components/ui/Drawer';
-import { RecipeCard } from '@/components/shared/RecipeCard';
-import { StaggeredFadeIn, itemVariants } from '@/components/ui/StaggeredFadeIn';
-import { motion } from 'framer-motion';
+// Эта функция будет выполняться на сервере
+async function getPlanData(planId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return notFound(); // Если пользователь не залогинен, показываем 404
+  }
 
-// --- Моковые данные ---
-import { MOCK_RECIPES } from '@/lib/constants';
+  const mealPlan = await prisma.mealPlan.findUnique({
+    where: {
+      id: planId,
+      userId: session.user.id, // Гарантирует, что пользователь может видеть только свой план
+    },
+  });
 
-// ★★★ 1. ИСПОЛЬЗУЕМ ПРАВИЛЬНУЮ СИГНАТУРУ NEXT.JS ★★★
-export default function PlanPage({ params }: { params: { planId: string } }) {
-  const [shoppingListOpen, setShoppingListOpen] = useState(false);
+  if (!mealPlan) {
+    return notFound(); // Если план не найден или не принадлежит пользователю, показываем 404
+  }
+  
+  // Безопасно приводим тип JSON-контента к нашему MealPlanData
+  return mealPlan.content as unknown as MealPlanData;
+}
 
-  return (
-    <main className="mx-auto max-w-7xl px-4 py-8 md:py-12">
-      <StaggeredFadeIn>
-        <motion.div variants={itemVariants} className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-headings font-semibold">Plan — Day 1</h1>
-            <p className="text-sm text-neutral-slate mt-1">Below is a preview for the first day of your plan.</p>
-          </div>
-          <Link href="/dashboard">
-            <Button className="bg-neutral-mist text-neutral-ink hover:bg-neutral-lines">Return to Dashboard</Button>
-          </Link>
-        </motion.div>
+// ★★★ ЭТО ТЕПЕРЬ ASYNC СЕРВЕРНЫЙ КОМПОНЕНТ ★★★
+export default async function PlanPage({ params }: { params: Promise<{ planId: string }> }) {
+  const { planId } = await params;
+  const planData = await getPlanData(planId);
 
-        <motion.div variants={itemVariants} className="mt-6 rounded-2xl border border-neutral-lines bg-white p-5 shadow-soft">
-          <div className="flex items-center gap-4">
-            <div className="relative grid size-20 place-items-center">
-              <div className="absolute inset-0 rounded-full bg-neutral-lines" />
-              <div className="absolute inset-0 rounded-full" style={{ background: `conic-gradient(#059669 93deg, transparent 93deg)` }} />
-              <div className="absolute inset-2 rounded-full bg-white" />
-              <div className="relative text-center">
-                <div className="text-xl font-bold leading-none">1450</div>
-                <div className="text-xs text-neutral-slate">/ 1500 kcal</div>
-              </div>
-            </div>
-            <div>
-              <h2 className="text-lg font-headings font-semibold">1450 kcal total</h2>
-              <p className="text-xs text-neutral-slate">Target: 1500 kcal · <span className="text-accent hover:underline cursor-pointer">How we calculated</span></p>
-              <div className="mt-2 text-xs">P: 126g · F: 42g · C: 138g</div>
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div variants={itemVariants} className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {MOCK_RECIPES.slice(0, 4).map(recipe => (
-            <RecipeCard key={recipe.id} r={recipe} />
-          ))}
-        </motion.div>
-
-        <motion.div variants={itemVariants} className="mt-8 flex flex-wrap items-center gap-4">
-          <a href={`/api/plan/${params.planId}/pdf`} download>
-            <Button as="span" className="px-6 py-3 text-base">Download 7-day PDF</Button>
-          </a>
-          <Button onClick={() => setShoppingListOpen(true)} className="bg-neutral-mist text-neutral-ink hover:bg-neutral-lines px-6 py-3 text-base">Open shopping list</Button>
-          <span className="text-sm text-neutral-slate">QR in the PDF links to your live plan.</span>
-        </motion.div>
-      </StaggeredFadeIn>
-
-      <Drawer open={shoppingListOpen} onClose={() => setShoppingListOpen(false)} title="Shopping List">
-        <p>Your aggregated shopping list will appear here.</p>
-      </Drawer>
-    </main>
-  );
+  // Рендерим клиентский компонент и передаем ему ID и реальные данные плана
+  return <PlanClient planId={planId} plan={planData} />;
 }

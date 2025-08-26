@@ -6,14 +6,16 @@ import { renderToStream, DocumentProps } from "@react-pdf/renderer";
 import { PlanPdfDocument } from "@/components/pdf/PlanPdfDocument";
 import { type MealPlanData } from "@/types/pdf";
 import React from "react";
+import { NextRequest } from "next/server";
 
-// ★★★ 1. ДОБАВЛЯЕМ ЭКСПОРТ, ЧТОБЫ ГАРАНТИРОВАТЬ ДИНАМИЧЕСКИЙ РЕНДЕРИНГ ★★★
+// ★★★ 1. ДОБАВЛЯЕМ ЭКСПОРТЫ, ЧТОБЫ ГАРАНТИРОВАТЬ ДИНАМИЧЕСКИЙ РЕНДЕРИНГ И NODE.JS РАНТАЙМ ★★★
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // ★★★ 2. ИСПОЛЬЗУЕМ ПРАВИЛЬНУЮ СИГНАТУРУ NEXT.JS ★★★
 export async function GET(
-  request: Request,
-  { params }: { params: { planId: string } }
+  request: NextRequest,
+  context: { params: { planId: string } } // Второй аргумент - это объект context
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -21,7 +23,7 @@ export async function GET(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { planId } = params;
+    const { planId } = context.params; // ★ 3. Получаем planId из context.params
     if (!planId) {
       return new NextResponse("Plan ID is required", { status: 400 });
     }

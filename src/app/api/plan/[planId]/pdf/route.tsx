@@ -6,17 +6,22 @@ import { renderToStream } from "@react-pdf/renderer";
 import { PlanPdfDocument } from "@/components/pdf/PlanPdfDocument";
 import { type MealPlanData } from "@/types/pdf";
 
-export async function GET(
-  request: Request,
-  { params }: { params: { planId: string } }
-) {
+// ★★★ 1. ОПРЕДЕЛЯЕМ ПРАВИЛЬНЫЙ ТИП ДЛЯ АРГУМЕНТА КОНТЕКСТА ★★★
+interface RouteContext {
+  params: {
+    planId: string;
+  };
+}
+
+// ★★★ 2. ПРИМЕНЯЕМ ЭТОТ ТИП К ФУНКЦИИ GET ★★★
+export async function GET(request: Request, context: RouteContext) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { planId } = params;
+    const { planId } = context.params; // ★ 3. Получаем planId из контекста
     if (!planId) {
       return new NextResponse("Plan ID is required", { status: 400 });
     }
@@ -38,8 +43,6 @@ export async function GET(
       <PlanPdfDocument plan={planData} />
     );
 
-    // ★★★ ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ ★★★
-    // Используем 'unknown' для безопасного приведения типов, чтобы обойти ошибку ESLint
     return new NextResponse(pdfStream as unknown as ReadableStream, {
       status: 200,
       headers: {

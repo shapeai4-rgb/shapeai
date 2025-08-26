@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { renderToStream } from "@react-pdf/renderer";
+// ★★★ 1. ИМПОРТИРУЕМ DocumentProps ★★★
+import { renderToStream, DocumentProps } from "@react-pdf/renderer";
 import { PlanPdfDocument } from "@/components/pdf/PlanPdfDocument";
 import { type MealPlanData } from "@/types/pdf";
 import React from "react";
@@ -38,11 +39,9 @@ export async function GET(request: Request, context: RouteContext) {
 
     const planData = mealPlan.content as unknown as MealPlanData;
     
-    // ★★★ ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ ★★★
-    // Мы явно приводим наш элемент к базовому типу React.ReactElement,
-    // чтобы обойти строгую проверку пропсов в renderToStream.
+    // ★★★ 2. ПРИМЕНЯЕМ ПРАВИЛЬНОЕ ПРИВЕДЕНИЕ ТИПА ★★★
     const pdfStream = await renderToStream(
-      React.createElement(PlanPdfDocument, { plan: planData }) as unknown as React.ReactElement<{}>
+      React.createElement(PlanPdfDocument, { plan: planData }) as unknown as React.ReactElement<DocumentProps>
     );
 
     return new NextResponse(pdfStream as unknown as ReadableStream, {

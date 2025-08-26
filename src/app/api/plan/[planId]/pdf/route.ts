@@ -13,13 +13,10 @@ export async function GET(
   context: { params: { planId: string } } // Второй аргумент - это объект context
 ) {
   try {
-    console.log(`[PDF Route] Received request for planId: ${context.params.planId}`);
-
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
-    console.log(`[PDF Route] User ${session.user.id} is authorized.`);
 
     const { planId } = context.params; // ★ 2. Получаем planId из context.params
     if (!planId) {
@@ -27,25 +24,21 @@ export async function GET(
     }
 
     const mealPlan = await prisma.mealPlan.findUnique({
-      where: { id: planId, userId: session.user.id },
+      where: {
+        id: planId,
+        userId: session.user.id,
+      },
     });
 
     if (!mealPlan) {
       return new NextResponse("Plan not found or access denied", { status: 404 });
     }
-    console.log(`[PDF Route] Found meal plan in DB for planId: ${planId}`);
-    
-    console.log(`[PDF Route] Raw content from DB: ${JSON.stringify(mealPlan.content, null, 2)}`);
 
     const planData = mealPlan.content as unknown as MealPlanData;
-
-    console.log(`[PDF Route] About to render PDF for plan title: "${planData.title}"`);
     
     const pdfStream = await renderToStream(
       React.createElement(PlanPdfDocument, { plan: planData }) as unknown as React.ReactElement<DocumentProps>
     );
-
-    console.log(`[PDF Route] PDF stream rendered successfully. Sending response.`);
 
     return new NextResponse(pdfStream as unknown as ReadableStream, {
       status: 200,
@@ -56,7 +49,7 @@ export async function GET(
     });
 
   } catch (error) {
-    console.error("[PDF Route] CRASHED:", error);
+    console.error("PDF_GENERATION_ERROR", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

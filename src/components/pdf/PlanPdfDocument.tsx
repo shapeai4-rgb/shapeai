@@ -2,12 +2,6 @@ import React from "react";
 import { Page, Text, View, Document, StyleSheet } from "@react-pdf/renderer";
 import { type MealPlanData, type Day, type Meal, type ShoppingCategory, type ShoppingItem } from "@/types/pdf";
 
-// ★ Примечание: Мы не можем использовать Tailwind CSS здесь.
-// Стилизация в @react-pdf/renderer работает по принципам React Native.
-
-// Регистрация шрифтов (если нужно)
-// Font.register({ family: 'Oswald', src: '...' });
-
 const styles = StyleSheet.create({
   page: { padding: 40, fontSize: 11, fontFamily: "Helvetica", color: "#333" },
   header: { borderBottomWidth: 1, borderBottomColor: '#eee', marginBottom: 12, paddingBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -50,7 +44,12 @@ export function PlanPdfDocument({ plan }: { plan: MealPlanData }) {
         <Page key={day.day} size="A4" style={styles.page}>
           <Text style={styles.dayTitle}>Day {day.day}</Text>
           <View style={styles.section}>
-            {day.meals.map((meal: Meal) => (
+            {day.meals.map((meal: Meal) => {
+              const recipe = plan.recipes[meal.recipe_id];
+              if (!recipe) {
+                return null;
+              }
+              return (
               <View key={meal.type} style={styles.mealCard}>
                 <Text style={styles.mealTitle}>
                   {meal.type.charAt(0).toUpperCase() + meal.type.slice(1)} — {plan.recipes[meal.recipe_id]?.title ?? 'Unnamed Meal'}
@@ -64,7 +63,8 @@ export function PlanPdfDocument({ plan }: { plan: MealPlanData }) {
                   <Text>Carbs: {meal.carbs_g}g</Text>
                 </View>
               </View>
-            ))}
+              );
+            })}
           </View>
           <Text style={styles.footer}>ShapeAI · Day {day.day}</Text>
         </Page>

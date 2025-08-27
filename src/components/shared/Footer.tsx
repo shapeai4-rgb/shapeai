@@ -16,18 +16,14 @@ export function Footer() {
     <footer className="border-t border-neutral-lines bg-white">
       <div className="mx-auto max-w-7xl px-4 py-8 text-sm text-neutral-slate">
         <div className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
-          {/* ★ 3. Обновленный копирайт */}
           <div>© {new Date().getFullYear()} PREPARING BUSINESS LTD</div>
-
-          {/* ★ 4. Новый блок со всеми ссылками */}
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             {policyLinks.map(link => (
-              // Используем <a> для внешних ссылок или страниц, которые еще не созданы
-              <a key={link.href} href={link.href} className="transition-colors hover:text-neutral-ink">
+              // Мы используем Link, так как это внутренние страницы
+              <Link key={link.href} href={link.href} className="transition-colors hover:text-neutral-ink">
                 {link.text}
-              </a>
+              </Link>
             ))}
-            {/* Используем Link для внутренних страниц, таких как Contact */}
             <Link href="/contact" className="transition-colors hover:text-neutral-ink">
               Contact
             </Link>

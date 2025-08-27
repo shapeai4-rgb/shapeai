@@ -8,15 +8,32 @@ import { Footer } from "@/components/shared/Footer";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "WeightLoss.AI",
-  description: "Your personal weight loss meal plan.",
-  icons: {
-    icon: [
-      { url: '/favicon.ico', type: 'image/x-icon' },
-      { url: '/favicon-16x16.png', type: 'image/png', sizes: '16x16' },
-      { url: '/favicon-32x32.png', type: 'image/png', sizes: '32x32' },
+  title: "WeightLoss.AI - Personalized Meal Plans", // ★ 1. Более информативный заголовок
+  description: "Generate your personalized weight loss meal plan in seconds. Describe your goals and get a 7-day PDF with recipes and a shopping list.",
+  
+  // ★★★ 2. НОВЫЙ БЛОК ДЛЯ OPEN GRAPH ★★★
+  openGraph: {
+    title: "WeightLoss.AI - Personalized Meal Plans",
+    description: "Generate your personalized weight loss meal plan in seconds.",
+    url: "https://shapeai.co.uk",
+    siteName: "WeightLoss.AI",
+    // ★ Убедитесь, что это изображение есть в папке public/
+    // ★ Идеальный размер: 1200x630px
+    images: [
+      {
+        url: "https://shapeai.co.uk/og-image.png", 
+        width: 1200,
+        height: 630,
+      },
     ],
-    apple: '/apple-touch-icon.png',
+    locale: "en_GB",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "WeightLoss.AI - Personalized Meal Plans",
+    description: "Generate your personalized weight loss meal plan in seconds.",
+    images: ["https://shapeai.co.uk/og-image.png"],
   },
 };
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { ContactFormEmail } from '@/components/emails/ContactFormEmail';
-import { render } from '@react-email/render'; // ★ Теперь этот импорт будет работать
+import { render } from '@react-email/render';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const toEmail = 'info@shapeai.co.uk';
@@ -14,14 +14,15 @@ export async function POST(request: Request) {
       return new NextResponse('Missing required fields', { status: 400 });
     }
 
+    // ★★★ ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ: Добавляем 'await' ★★★
     const emailHtml = await render(ContactFormEmail({ senderName: name, senderEmail: email, message }));
 
     const { data, error } = await resend.emails.send({
-      from: 'Contact Form <contact@shapeai.co.uk>',
+      from: 'Contact Form <contact@shapeai.co.uk>', // Теперь можно использовать ваш домен
       to: [toEmail],
       subject: `New Message from ${name} via ShapeAI`,
       html: emailHtml,
-      replyTo: email, // ★ ИСПРАВЛЕНО
+      replyTo: email,
     });
 
     if (error) {

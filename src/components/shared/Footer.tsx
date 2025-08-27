@@ -10,7 +10,7 @@ export function Footer() {
     { href: "/terms-of-service", text: "Terms of Service" },
     { href: "/refunds-policy", text: "Refunds Policy" },
     { href: "/ai-use-safety-policy", text: "AI Use & Safety Policy" },
-    { href: "/medical-disclaimer", text: "Medical & Nutrition Disclaimer" },
+    { href: "/medical-nutrition-disclaimer", text: "Medical & Nutrition Disclaimer" },
   ];
 
   const paymentLogos = [

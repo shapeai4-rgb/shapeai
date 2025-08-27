@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const emailHtml = await render(ContactFormEmail({ senderName: name, senderEmail: email, message }));
 
     const { data, error } = await resend.emails.send({
-      from: 'Contact Form <contact@shapeai.co.uk>', // Теперь можно использовать ваш домен
+      from: 'Contact Form <info@shapeai.co.uk>', // Теперь можно использовать ваш домен
       to: [toEmail],
       subject: `New Message from ${name} via ShapeAI`,
       html: emailHtml,

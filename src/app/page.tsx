@@ -168,8 +168,7 @@ export default function HomePage() {
           <div aria-labelledby="preview-title" ref={previewRef}>
             <h2 id="preview-title" className="sr-only">Plan preview</h2>
             <StaggeredFadeIn className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <motion.div variants={itemVariants}><AnimatedCard><PdfMini /></AnimatedCard></motion.div>
-              {loading && [...Array(3)].map((_, i) => (<motion.div variants={itemVariants} key={i}><SkeletonCard /></motion.div>))}
+              {loading && [...Array(4)].map((_, i) => (<motion.div variants={itemVariants} key={i}><SkeletonCard /></motion.div>))}
               {!loading && preview && preview.map((r) => (<motion.div variants={itemVariants} key={r.id}><AnimatedCard><RecipeCard r={r} /></AnimatedCard></motion.div>))}
             </StaggeredFadeIn>
           </div>

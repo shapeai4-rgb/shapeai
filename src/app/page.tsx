@@ -18,6 +18,7 @@ import { StaggeredFadeIn, itemVariants } from "@/components/ui/StaggeredFadeIn";
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { GeneratorPanel } from '@/components/shared/GeneratorPanel';
 import { type GeneratorFormData } from "@/types";
+import { ContactForm } from '@/components/shared/ContactForm';
 
 // Типы для ответа от AI
 interface MealDetail { title: string; kcal: number; }
@@ -199,6 +200,22 @@ export default function HomePage() {
         <StaggeredFadeIn className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <motion.h2 variants={itemVariants} className="text-xl md:text-2xl font-headings font-semibold col-span-full">FAQ</motion.h2>
           {FAQ.map((f) => (<FaqItem key={f.q} q={f.q} a={f.a} />))}
+        </StaggeredFadeIn>
+      </section>
+      <section id="contact-home" className="mx-auto max-w-7xl px-4 py-12 md:py-20">
+        <StaggeredFadeIn>
+          <motion.div 
+            variants={itemVariants} 
+            className="rounded-3xl border border-neutral-lines bg-white p-6 md:p-8 shadow-soft max-w-3xl mx-auto"
+          >
+            <h2 className="text-xl md:text-2xl font-headings font-semibold text-center">Get in Touch</h2>
+            <p className="mt-2 text-sm text-neutral-slate text-center">
+              Have questions or feedback? Fill out the form below.
+            </p>
+            <div className="mt-6">
+              <ContactForm />
+            </div>
+          </motion.div>
         </StaggeredFadeIn>
       </section>
       <AuthModal open={authMode !== null} mode={authMode || "signup"} onClose={() => setAuthMode(null)} />

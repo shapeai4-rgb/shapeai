@@ -3,6 +3,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useSession, signOut } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
@@ -37,7 +38,7 @@ export function Header() {
       <header className="sticky top-0 z-40 border-b border-neutral-lines bg-white/80 backdrop-blur">
         <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <div className="size-8 rounded-md bg-accent" aria-hidden />
+            <Image src="/logo.webp" alt="WeightLoss.AI Logo" width={32} height={32} />
             <span className="font-headings font-semibold tracking-tight">WeightLoss.AI</span>
           </Link>
 
@@ -49,7 +50,11 @@ export function Header() {
                 <Link href="/top-up" className="transition-colors hover:text-neutral-ink">Top-up</Link>
                 <TokenDisplay balance={session?.user?.tokenBalance ?? 0} />
                 <button onClick={() => signOut({ callbackUrl: '/' })} className="transition-colors hover:text-neutral-ink">Log out</button>
-                <div className="size-8 rounded-full bg-neutral-lines" /> 
+                {session.user?.image ? (
+                  <Image src={session.user.image} alt="User Avatar" width={32} height={32} className="rounded-full" />
+                ) : (
+                  <div className="size-8 rounded-full bg-neutral-lines" />
+                )}
               </>
             ) : (
               // ★★★ Навигация для ГОСТЯ

@@ -1,28 +1,18 @@
-// src/app/layout.tsx 
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
-import "./globals.css";
-
-// ★★★ Импорты, которые я пропустил ★★★
-import AuthProvider from "@/components/providers/AuthProvider";
-import { Header } from "@/components/shared/Header";
-import { Footer } from "@/components/shared/Footer";
-
-// ★★★ Определения шрифтов, которые я пропустил ★★★
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["600", "700"],
-  variable: "--font-plus-jakarta-sans",
-});
+// ...
 
 export const metadata: Metadata = {
   title: "WeightLoss.AI",
-  description: "Your personal weight loss meal plan — in 30 seconds",
+  description: "Your personal weight loss meal plan.",
+  // ★★★ НОВЫЙ БЛОК ДЛЯ ИКОНОК ★★★
+  icons: {
+    icon: [
+      { url: '/favicon.ico', type: 'image/x-icon' },
+      { url: '/favicon-16x16.png', type: 'image/png', sizes: '16x16' },
+      { url: '/favicon-32x32.png', type: 'image/png', sizes: '32x32' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
 };
 
 export default function RootLayout({
@@ -31,17 +21,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${plusJakartaSans.variable}`}>
-      <body>
-        <AuthProvider>
-          <Header />
-          {/* ★★★ Оборачиваем {children} в <main> для семантической верстки ★★★ */}
-          <main className="min-h-screen">
-            {children}
-          </main>
-          <Footer />
-        </AuthProvider>
-      </body>
+    <html lang="en">
+      {/* Остальные теги (для android) добавляются напрямую в head */}
+      <head>
+        <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
+      </head>
+      <body>{children}</body>
     </html>
   );
 }

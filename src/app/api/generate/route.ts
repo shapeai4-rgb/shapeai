@@ -117,6 +117,13 @@ export async function POST(request: Request) {
         dietTags: formData.diet.types || [],
       }
     });
+
+    const tokensToDeduct = days * 5;
+
+    // Дополнительная проверка, чтобы убедиться, что у пользователя достаточно токенов
+    if (user.tokenBalance < tokensToDeduct) {
+      return new NextResponse("Insufficient tokens for the selected number of days.", { status: 402 });
+    }
     
     await prisma.user.update({
       where: { id: userId },

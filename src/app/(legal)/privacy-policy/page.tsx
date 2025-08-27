@@ -13,7 +13,7 @@ export default function PrivacyPolicyPage() {
 
       <h2>Who we are</h2>
       <p>
-        We are PREPARING BUSINESS LTD ("Shape AI", "we", "us"). We provide AI-assisted meal 
+        We are PREPARING BUSINESS LTD (&quot;Shape AI&quot;, &quot;we&quot;, &quot;us&quot;). We provide AI-assisted meal 
         planning and nutrition content at shapeai.co.uk.
       </p>
 

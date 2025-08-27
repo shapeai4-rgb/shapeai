@@ -21,7 +21,6 @@ import { type GeneratorFormData } from "@/types";
 
 // Типы для ответа от AI
 interface MealDetail { title: string; kcal: number; }
-interface DayPlan { breakfast: MealDetail; lunch: MealDetail; dinner: MealDetail; snacks?: MealDetail[]; }
 
 // --- Типы и Данные ---
 type Currency = 'EUR' | 'GBP';

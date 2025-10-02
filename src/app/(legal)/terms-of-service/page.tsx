@@ -23,7 +23,7 @@ export default function TermsAndConditionsPage() {
 
         <h2 className="text-2xl font-semibold text-neutral-ink mt-8 mb-4">1. Introduction</h2>
         <p className="text-neutral-slate mb-4">
-          1.1 These Terms & Conditions ("Terms") govern your access to and use of the ShapeAI website and services (the "Service") provided by PREPARING BUSINESS LTD ("we", "us", "our" or the "Company"). By registering for an account, topping up Tokens, requesting or downloading AI-generated meal plans, or otherwise using the Service you accept and agree to be bound by these Terms.
+          1.1 These Terms & Conditions (&quot;Terms&quot;) govern your access to and use of the ShapeAI website and services (the &quot;Service&quot;) provided by PREPARING BUSINESS LTD (&quot;we&quot;, &quot;us&quot;, &quot;our&quot; or the &quot;Company&quot;). By registering for an account, topping up Tokens, requesting or downloading AI-generated meal plans, or otherwise using the Service you accept and agree to be bound by these Terms.
         </p>
         <p className="text-neutral-slate mb-6">
           1.2 If you do not accept these Terms, stop using the Service immediately.
@@ -145,7 +145,7 @@ export default function TermsAndConditionsPage() {
 
         <h2 className="text-2xl font-semibold text-neutral-ink mt-8 mb-4">11. Warranties and disclaimers</h2>
         <p className="text-neutral-slate mb-4">
-          11.1 We warrant we have authority to provide the Service. Except as expressly provided, the Service and Products are provided "as is" and "as available" and we disclaim implied warranties to the fullest extent permitted by law.
+          11.1 We warrant we have authority to provide the Service. Except as expressly provided, the Service and Products are provided &quot;as is&quot; and &quot;as available&quot; and we disclaim implied warranties to the fullest extent permitted by law.
         </p>
         <p className="text-neutral-slate mb-6">
           11.2 We do not guarantee results or specific health or fitness outcomes.

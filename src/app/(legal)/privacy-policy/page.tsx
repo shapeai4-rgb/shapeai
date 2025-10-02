@@ -144,7 +144,7 @@ export default function PrivacyPolicyPage() {
           <p><strong>Email:</strong> info@shapeai.co.uk</p>
           <p><strong>Phone:</strong> +44 7822016497</p>
           <p className="mt-4 text-sm">
-            You also have the right to complain to the Information Commissioner's Office (ICO) if you are unhappy with how we use your data: <a href="https://ico.org.uk" className="text-accent hover:underline" target="_blank" rel="noopener noreferrer">ico.org.uk</a>
+            You also have the right to complain to the Information Commissioner&apos;s Office (ICO) if you are unhappy with how we use your data: <a href="https://ico.org.uk" className="text-accent hover:underline" target="_blank" rel="noopener noreferrer">ico.org.uk</a>
           </p>
         </div>
       </div>

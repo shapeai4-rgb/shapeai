@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/Button';
@@ -9,7 +9,7 @@ import { DIET_TYPES, CUISINES, ALLERGENS, IF_OPTIONS, LEFTOVERS, ACTIVITY_LEVELS
 import { type GeneratorFormData } from '@/types';
 import { CostDisplay } from '@/components/shared/CostDisplay';
 import { InsufficientTokensModal } from '@/components/shared/InsufficientTokensModal';
-import { calculateGenerationCost, type CostCalculationRequest } from '@/lib/cost-calculation';
+import { type CostCalculationRequest } from '@/lib/cost-calculation';
 
 type GeneratorPanelProps = {
   onGenerate: (formData: GeneratorFormData) => void;
@@ -69,7 +69,7 @@ export function GeneratorPanel({ onGenerate, loading, onAuth }: GeneratorPanelPr
   const [showInsufficientTokensModal, setShowInsufficientTokensModal] = useState(false);
   
   // Функция для расчета стоимости
-  const calculateCost = async () => {
+  const calculateCost = useCallback(async () => {
     if (!isLoggedIn) return;
     
     setCostCalculation(prev => ({ ...prev, isLoading: true }));
@@ -106,7 +106,7 @@ export function GeneratorPanel({ onGenerate, loading, onAuth }: GeneratorPanelPr
       console.error('Error calculating cost:', error);
       setCostCalculation(prev => ({ ...prev, isLoading: false }));
     }
-  };
+  }, [formData, isLoggedIn]);
   
   // Обновляем расчет стоимости при изменении формы
   useEffect(() => {
@@ -115,7 +115,7 @@ export function GeneratorPanel({ onGenerate, loading, onAuth }: GeneratorPanelPr
     }, 500); // Debounce на 500ms
     
     return () => clearTimeout(timeoutId);
-  }, [formData, isLoggedIn]);
+  }, [calculateCost]);
   
   const handleNestedChange = (part: 'goals' | 'structure' | 'diet', field: string, value: string | number | boolean) => {
     setFormData(prev => ({

@@ -12,7 +12,6 @@ import axios from 'axios';
 import { Button } from "@/components/ui/Button";
 import { SkeletonCard } from "@/components/shared/SkeletonCard";
 import { RecipeCard } from "@/components/shared/RecipeCard";
-import { PdfMini } from "@/components/shared/PdfMini";
 import { AuthModal } from "@/components/shared/AuthModal";
 import { StaggeredFadeIn, itemVariants } from "@/components/ui/StaggeredFadeIn";
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
@@ -21,7 +20,6 @@ import { type GeneratorFormData } from "@/types";
 import { ContactForm } from '@/components/shared/ContactForm';
 
 // Типы для ответа от AI
-interface MealDetail { title: string; kcal: number; }
 
 // --- Типы и Данные ---
 type Currency = 'EUR' | 'GBP';

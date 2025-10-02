@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from "@/lib/auth";
 import { prisma } from '@/lib/prisma';
 import { getPaymentProvider } from '@/lib/payment';
-import { TOP_UP_PRICES, TOKENS_FOR_PLAN } from '@/lib/constants';
+import { TOP_UP_PRICES } from '@/lib/constants';
 
 type PlanId = keyof typeof TOP_UP_PRICES;
 

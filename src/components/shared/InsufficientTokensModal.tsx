@@ -51,7 +51,7 @@ export function InsufficientTokensModal({
                 Insufficient Tokens
               </h2>
               <p className="text-neutral-slate">
-                You don't have enough tokens to generate this meal plan.
+                You don&apos;t have enough tokens to generate this meal plan.
               </p>
             </div>
 

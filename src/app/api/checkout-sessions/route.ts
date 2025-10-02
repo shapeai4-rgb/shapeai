@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import Stripe from 'stripe';
 import { authOptions } from "@/lib/auth";
 import { prisma } from '@/lib/prisma';
-import { stripe } from '@/lib/stripe';
-import { TOP_UP_PRICES } from '@/lib/constants';
+import { getPaymentProvider } from '@/lib/payment';
+import { TOP_UP_PRICES, TOKENS_FOR_PLAN } from '@/lib/constants';
 
 type PlanId = keyof typeof TOP_UP_PRICES;
 
@@ -28,80 +27,34 @@ export async function POST(request: Request) {
       return new NextResponse('User not found', { status: 404 });
     }
 
-    // 2. --- Get or Create Stripe Customer ---
-    let stripeCustomerId = user.stripeCustomerId;
-    if (!stripeCustomerId) {
-      const customer = await stripe.customers.create({
-        email: user.email!,
-        name: user.name ?? undefined,
-        metadata: { userId: user.id },
-      });
-      stripeCustomerId = customer.id;
-      // Save the new customer ID to our database
-      await prisma.user.update({
-        where: { id: userId },
-        data: { stripeCustomerId },
-      });
-    }
-
-    // 3. --- Prepare Line Item for Stripe ---
+    // 2. --- Prepare Payment Parameters ---
     const body: RequestBody = await request.json();
     const { currency, planId, customAmount } = body;
-    const origin = process.env.NEXT_PUBLIC_BASE_URL || 'https://shapeai.co.uk';
     
-    const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = []
-
+    let amount = 0;
     if (planId && TOP_UP_PRICES[planId]) {
-      // --- Fixed Plan Logic ---
-      const plan = TOP_UP_PRICES[planId];
-      const amount = plan[currency];
-      const planName = planId.charAt(0).toUpperCase() + planId.slice(1);
-
-      line_items.push({
-        price_data: {
-          currency: currency,
-          product_data: { name: `Top-up: ${planName} Plan` },
-          unit_amount: amount, // Amount in cents
-        },
-        quantity: 1,
-      });
-    } else if (customAmount && customAmount >= 50) { // Lowered minimum to 0.50 EUR/GBP
-      // --- Custom Amount Logic ---
-      line_items.push({
-        price_data: {
-          currency: currency,
-          product_data: { name: 'Top-up: Custom Amount' },
-          unit_amount: customAmount,
-        },
-        quantity: 1,
-      });
+      amount = TOP_UP_PRICES[planId][currency];
+    } else if (customAmount && customAmount >= 50) {
+      amount = customAmount;
     } else {
       return new NextResponse('Invalid plan or amount.', { status: 400 });
     }
-    
-    // 4. --- Create Stripe Checkout Session ---
-    const checkoutSession = await stripe.checkout.sessions.create({
-      customer: stripeCustomerId,
-      payment_method_types: ['card'],
-      line_items,
-      mode: 'payment',
-      success_url: `${origin}/dashboard?payment_success=true`,
-      cancel_url: `${origin}/top-up?payment_cancelled=true`,
-      metadata: {
-        userId: userId,
-      },
-      expand: ['line_items'],
+
+    // 3. --- Create Checkout Session using Payment Provider ---
+    const paymentProvider = getPaymentProvider();
+    const checkoutResult = await paymentProvider.createCheckoutSession({
+      userId,
+      amount,
+      currency,
+      planId,
+      customAmount
     });
 
-    if (!checkoutSession.url) {
-      return new NextResponse('Could not create checkout session.', { status: 500 });
-    }
-    
-    // 5. --- Return the session URL to the frontend ---
-    return NextResponse.json({ url: checkoutSession.url });
+    // 4. --- Return the session URL to the frontend ---
+    return NextResponse.json({ url: checkoutResult.url });
 
   } catch (error) {
-    console.error('STRIPE_CHECKOUT_ERROR', error);
+    console.error('CHECKOUT_SESSION_ERROR', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

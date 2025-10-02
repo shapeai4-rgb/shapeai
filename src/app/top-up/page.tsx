@@ -67,8 +67,32 @@ function TopUpCard({ plan, onSelect, isLoggedIn }: { plan: TopUpPlan; onSelect: 
       }
 
       const { data } = await axios.post('/api/checkout-sessions', requestBody);
+      console.log('Checkout response:', data);
+      
       if (data.url) {
-        window.location.href = data.url;
+        console.log('Making request to:', data.url);
+        // Для бесплатного режима делаем fetch запрос вместо редиректа
+        // В продакшене используем полный URL, в разработке - относительный
+        const isProduction = window.location.hostname === 'shapeai.co.uk';
+        const requestUrl = isProduction ? data.url : data.url.replace('https://shapeai.co.uk', '');
+        console.log('Making request to:', requestUrl);
+        const response = await fetch(requestUrl);
+        console.log('Free top-up response status:', response.status);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('Free top-up result:', result);
+        
+        if (result.success) {
+          // Обновляем страницу для получения нового баланса токенов
+          window.location.href = result.redirectUrl;
+        } else {
+          alert("Failed to add tokens. Please try again.");
+          setIsRedirecting(false);
+        }
       }
     } catch (error) {
       console.error("Checkout failed:", error);
@@ -96,13 +120,13 @@ function TopUpCard({ plan, onSelect, isLoggedIn }: { plan: TopUpPlan; onSelect: 
         )}
         {plan.tokens && <div className="mt-1 text-xs text-neutral-slate">≈ {plan.tokens.toLocaleString()} tokens</div>}
         <div className="mt-4 text-xs text-neutral-slate">
-          {isLoggedIn ? 'Proceed to checkout' : 'Sign in to Top-up'}
+          {isLoggedIn ? 'Get tokens instantly' : 'Sign in to get tokens'}
         </div>
         <Button onClick={handleCheckout} locked={plan.custom && !valid} disabled={isRedirecting} className="w-full mt-2 text-sm py-2">
-        {isRedirecting ? 'Redirecting...' : (
+        {isRedirecting ? 'Getting tokens...' : (
             isLoggedIn 
-              ? (plan.custom ? `Top-up ${formatCurrency(currency, priceInSelected ?? 0)}` : `Top-up ${formatCurrency(currency, priceInSelected ?? 0, { trimCents: true })}`)
-              : 'Sign up to Top-up'
+              ? (plan.custom ? `Get ${plan.tokens || Math.round(Number(normalizeAmount(amount)) * 10)} tokens` : `Get ${plan.tokens} tokens`)
+              : 'Sign up to get tokens'
           )}
         </Button>
       </article>
@@ -125,7 +149,7 @@ export default function TopUpPage() {
               Top-up tokens
             </h1>
             <p className="mt-4 max-w-2xl mx-auto text-neutral-slate md:text-lg">
-              Choose a pack or enter a custom amount. You need to sign in to complete the purchase.
+              Choose a pack or enter a custom amount. Tokens are currently free for all users!
             </p>
           </motion.div>
           <motion.div variants={itemVariants} className="mt-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">

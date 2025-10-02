@@ -16,12 +16,12 @@ model User {
   emailVerified DateTime?
   hashedPassword  String?
   tokenBalance    Int       @default(10)
-  stripeCustomerId String?  @unique
   image         String?
   
   accounts      Account[]
   sessions      Session[]
   mealPlans     MealPlan[]
+  transactions  Transaction[]
 }
 
 model Account {
@@ -69,4 +69,16 @@ model MealPlan {
   kcalTarget  Int
   status      String 
   dietTags    String[]
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action      String   // "topup" | "spend"
+  tokenAmount Int      // Количество токенов (положительное для пополнения, отрицательное для трат)
+  amount      Float?   // Сумма в валюте (только для пополнений)
+  currency    String?  // "EUR" | "GBP" | etc.
+  description String?  // Описание транзакции
+  createdAt   DateTime @default(now())
 }

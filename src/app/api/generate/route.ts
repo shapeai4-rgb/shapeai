@@ -3,16 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import OpenAI from "openai";
+import { calculateGenerationCost, hasEnoughTokens, type CostCalculationRequest } from "@/lib/cost-calculation";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-interface GenerateApiRequest {
-  freeText: string;
-  days: number;
-  goals: Record<string, unknown>;
-  structure: Record<string, unknown>;
+interface GenerateApiRequest extends CostCalculationRequest {
   diet: {
     types: string[];
     [key: string]: unknown;
@@ -21,22 +18,36 @@ interface GenerateApiRequest {
 
 export async function POST(request: Request) {
   try {
-    // --- Шаг 1: Проверка сессии (без изменений) ---
+    // --- Шаг 1: Проверка сессии ---
     const session = await getServerSession(authOptions);
     if (!session || !session.user || !session.user.id) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
     const userId = session.user.id;
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user || user.tokenBalance <= 0) {
-      return new NextResponse("Insufficient tokens", { status: 402 });
-    }
 
-    // --- Шаг 2: Получение данных (без изменений) ---
+    // --- Шаг 2: Получение данных и расчет стоимости ---
     const formData: GenerateApiRequest = await request.json();
     const { days } = formData;
     
-    // ★★★ 3. НОВЫЙ, ПРОДВИНУТЫЙ ПРОМПТ ДЛЯ СЛОЖНОГО JSON ★★★
+    // Рассчитываем стоимость генерации
+    const costCalculation = calculateGenerationCost(formData);
+    
+    // Получаем баланс пользователя
+    const user = await prisma.user.findUnique({ 
+      where: { id: userId },
+      select: { tokenBalance: true }
+    });
+    
+    if (!user) {
+      return new NextResponse("User not found", { status: 404 });
+    }
+    
+    // Проверяем, достаточно ли токенов
+    if (!hasEnoughTokens(user.tokenBalance, costCalculation.totalCost)) {
+      return new NextResponse(`Insufficient tokens. Required: ${costCalculation.totalCost}, Available: ${user.tokenBalance}`, { status: 402 });
+    }
+    
+    // --- Шаг 3: Генерация плана через OpenAI ---
     const systemPrompt = `
       You are an expert nutritionist AI. Create a detailed, personalized ${days}-day meal plan.
       Your response MUST be a single, valid JSON object that strictly adheres to the following schema.
@@ -105,7 +116,7 @@ export async function POST(request: Request) {
       return new NextResponse("AI returned an invalid response format.", { status: 502 });
     }
     
-    // --- Шаг 4: Сохранение и списание токена (без изменений) ---
+    // --- Шаг 4: Сохранение плана и списание токенов ---
     const createdPlan = await prisma.mealPlan.create({
       data: {
         userId: userId,
@@ -118,16 +129,26 @@ export async function POST(request: Request) {
       }
     });
 
-    const tokensToDeduct = days * 5;
-
-    // Дополнительная проверка, чтобы убедиться, что у пользователя достаточно токенов
-    if (user.tokenBalance < tokensToDeduct) {
-      return new NextResponse("Insufficient tokens for the selected number of days.", { status: 402 });
-    }
-    
+    // Списываем токены по новой логике
     await prisma.user.update({
       where: { id: userId },
-      data: { tokenBalance: { decrement: 1 } },
+      data: { tokenBalance: { decrement: costCalculation.totalCost } },
+    });
+
+    // Записываем транзакцию траты токенов с детализацией
+    const additionalOptionsText = costCalculation.breakdown.additionalOptions.length > 0 
+      ? ` (${costCalculation.breakdown.additionalOptions.map(opt => opt.name).join(', ')})`
+      : '';
+    
+    await prisma.transaction.create({
+      data: {
+        userId,
+        action: 'spend',
+        tokenAmount: -costCalculation.totalCost, // Отрицательное значение для трат
+        amount: null, // Нет денежной суммы для трат
+        currency: null,
+        description: `Generated ${days}-day meal plan: ${generatedPlan.title}${additionalOptionsText}`,
+      },
     });
     
     // Возвращаем ID созданного плана, чтобы можно было сразу перейти на его страницу

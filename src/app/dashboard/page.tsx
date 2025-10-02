@@ -15,6 +15,17 @@ import { StaggeredFadeIn, itemVariants } from "@/components/ui/StaggeredFadeIn";
 import { motion } from "framer-motion";
 import axios from 'axios';
 
+// Тип для транзакции
+type Transaction = {
+  id: string;
+  action: 'topup' | 'spend';
+  tokenAmount: number;
+  amount: number | null;
+  currency: string | null;
+  description: string | null;
+  createdAt: string;
+};
+
 // ★★★ ОБРАБОТЧИК ДЛЯ ДИНАМИЧЕСКОЙ ЛОГИКИ ★★★
 function PaymentRedirectHandler() {
   const searchParams = useSearchParams();
@@ -49,19 +60,17 @@ function PaymentRedirectHandler() {
 }
 
 function TokenPill({ balance }: { balance: number }) {
-  const used = 0;
-  const total = 200;
-  const pct = Math.min(100, Math.round((used / Math.max(1, total)) * 100));
+  const used = 0; // Пока не отслеживаем использованные токены отдельно
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-accent/20 bg-accent/10 px-4 py-3 text-sm text-neutral-ink">
       <div className="relative grid size-10 place-items-center">
-        <div className="absolute inset-0 rounded-full" style={{ background: `conic-gradient(#059669 ${pct * 3.6}deg, #E5E7EB ${pct * 3.6}deg)` }} />
+        <div className="absolute inset-0 rounded-full bg-accent/20" />
         <div className="absolute inset-1 rounded-full bg-white" />
         <div className="relative text-xs font-semibold">{balance}</div>
       </div>
       <div>
         <div className="font-headings font-medium leading-none">Tokens: {balance}</div>
-        <div className="text-xs text-accent/80 mt-0.5">{used}/{total} used this month</div>
+        <div className="text-xs text-accent/80 mt-0.5">{used} used this month</div>
       </div>
       <Link href="/top-up" passHref>
         <Button className="ml-auto bg-white border border-accent/30 text-accent hover:bg-accent/10 text-sm px-3 py-1.5 h-auto">Get tokens</Button>
@@ -76,25 +85,43 @@ function DashboardClient() {
   
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
 
-  // Этот useEffect будет загружать планы пользователя при загрузке страницы
+  // Этот useEffect будет загружать планы и транзакции пользователя при загрузке страницы
   useEffect(() => {
     if (status === 'authenticated') {
       setIsLoadingPlans(true);
-      axios.get<Plan[]>('/api/plans') // ★ Указываем ожидаемый тип ответа
+      setIsLoadingTransactions(true);
+      
+      // Загружаем планы
+      axios.get<Plan[]>('/api/plans')
         .then(response => {
           setPlans(response.data);
         })
-        .catch((error: Error) => { // ★ Типизируем ошибку
+        .catch((error: Error) => {
           console.error("Failed to fetch plans:", error.message);
         })
         .finally(() => {
           setIsLoadingPlans(false);
         });
+
+      // Загружаем транзакции
+      axios.get<Transaction[]>('/api/transactions')
+        .then(response => {
+          setTransactions(response.data);
+        })
+        .catch((error: Error) => {
+          console.error("Failed to fetch transactions:", error.message);
+        })
+        .finally(() => {
+          setIsLoadingTransactions(false);
+        });
     }
     // Если пользователь не аутентифицирован, просто прекращаем загрузку
     if (status === 'unauthenticated') {
       setIsLoadingPlans(false);
+      setIsLoadingTransactions(false);
     }
   }, [status]);
 
@@ -139,8 +166,74 @@ function DashboardClient() {
           <Dropdown label="Status" value={filterStatus} options={["All", "Active", "Draft", "Archived"]} onChange={(v) => setFilterStatus(v as "All" | "Active" | "Draft" | "Archived")} />
           <Dropdown label="Diet" value={diet} options={["All", "Mediterranean", "Gluten‑free", "High protein", "Budget", "Vegetarian", "≤20 min"]} onChange={setDiet} />
         </motion.div>
+
+        {/* Transaction History Section */}
+        <motion.div variants={itemVariants} className="mt-8">
+          <h2 className="text-xl font-headings font-semibold mb-4">Transaction History</h2>
+          <div className="rounded-card border border-neutral-lines bg-white overflow-hidden">
+            {isLoadingTransactions ? (
+              <div className="p-8 text-center">Loading transactions...</div>
+            ) : transactions.length === 0 ? (
+              <div className="p-8 text-center text-neutral-slate">
+                No transactions yet. Your transaction history will appear here.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-neutral-lines/20">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-neutral-slate">Date</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-neutral-slate">Action</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-neutral-slate">Token Amount</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-neutral-slate">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-lines">
+                    {transactions.map((transaction) => (
+                      <tr key={transaction.id} className="hover:bg-neutral-lines/10">
+                        <td className="px-4 py-3 text-sm text-neutral-slate">
+                          {new Date(transaction.createdAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            transaction.action === 'topup' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {transaction.action === 'topup' ? 'Top-up' : 'Spend'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm font-medium">
+                          <span className={transaction.tokenAmount > 0 ? 'text-green-600' : 'text-red-600'}>
+                            {transaction.tokenAmount > 0 ? '+' : ''}{transaction.tokenAmount}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-neutral-slate">
+                          {transaction.amount && transaction.currency ? (
+                            <span>
+                              {transaction.currency === 'EUR' ? '€' : transaction.currency === 'GBP' ? '£' : transaction.currency}
+                              {transaction.amount.toFixed(2)}
+                            </span>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </motion.div>
         
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
           {isLoadingPlans ? (
             <div className="md:col-span-2 text-center p-8">Loading plans...</div>
           ) : filteredPlans.length === 0 ? (

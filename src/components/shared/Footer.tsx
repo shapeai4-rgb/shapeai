@@ -3,53 +3,156 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 export function Footer() {
-  // ★ 2. Создаем массив ссылок для удобства
-  const policyLinks = [
+  // Данные компании
+  const companyInfo = {
+    name: "PREPARING BUSINESS LTD",
+    address: "123 Business Street, London, UK",
+    email: "info@shapeai.co.uk",
+    phone: "+44 20 1234 5678"
+  };
+
+  // Legal ссылки
+  const legalLinks = [
     { href: "/privacy-policy", text: "Privacy Policy" },
     { href: "/cookie-policy", text: "Cookie Policy" },
-    { href: "/terms-of-service", text: "Terms of Service" },
-    { href: "/refunds-policy", text: "Refunds Policy" },
-    { href: "/ai-use-safety-policy", text: "AI Use & Safety Policy" },
-    { href: "/medical-nutrition-disclaimer", text: "Medical & Nutrition Disclaimer" },
+    { href: "/terms-of-service", text: "Terms and Conditions" },
+    { href: "/refunds-policy", text: "Refund and Return Policy" },
   ];
 
-  const paymentLogos = [
-    { src: '/visa-logo.svg', alt: 'Visa' },
-    { src: '/mastercard-logo.svg', alt: 'Mastercard' },
-    { src: '/American_Express_logo.svg', alt: 'American Express' },
-    { src: '/Maestro_Logo.svg', alt: 'Maestro' },
-    { src: '/Apple_Pay_logo.svg', alt: 'Apple Pay' },
-    { src: '/Google_Pay_Logo.svg', alt: 'Google Pay' },
+  // Полезные ссылки
+  const usefulLinks = [
+    { href: "/ai-use-safety-policy", text: "AI Use & Safety Policy" },
+    { href: "/medical-nutrition-disclaimer", text: "Medical & Nutrition Disclaimer" },
+    { href: "/contact", text: "Contact" },
+    { href: "/faq", text: "FAQ" },
+    { href: "/pricing", text: "Pricing" },
+  ];
+
+  // Социальные сети
+  const socialLinks = [
+    { 
+      href: "https://www.instagram.com/recipegenshop", 
+      text: "Instagram",
+      icon: "📷"
+    },
   ];
 
   return (
     <footer className="border-t border-neutral-lines bg-white">
-      <div className="mx-auto max-w-7xl px-4 py-8 text-sm text-neutral-slate">
-        <div className="flex flex-col items-center gap-6">
-          {/* Блок с политиками и контактами */}
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-            {policyLinks.map(link => (
-              <Link key={link.href} href={link.href} className="transition-colors hover:text-neutral-ink">
-                {link.text}
-              </Link>
-            ))}
-            <Link href="/contact" className="transition-colors hover:text-neutral-ink">
-              Contact
-            </Link>
+      <div className="mx-auto max-w-7xl px-4 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          
+          {/* Company Column */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-neutral-ink">Company</h3>
+            <div className="space-y-2 text-sm text-neutral-slate">
+              <div className="font-medium text-neutral-ink">{companyInfo.name}</div>
+              <div>{companyInfo.address}</div>
+              <div>
+                <a href={`mailto:${companyInfo.email}`} className="hover:text-neutral-ink transition-colors">
+                  {companyInfo.email}
+                </a>
+              </div>
+              <div>
+                <a href={`tel:${companyInfo.phone}`} className="hover:text-neutral-ink transition-colors">
+                  {companyInfo.phone}
+                </a>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center justify-center gap-4">
-            {paymentLogos.map((logo) => (
+
+          {/* Legal Column */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-neutral-ink">Legal</h3>
+            <div className="space-y-2">
+              {legalLinks.map(link => (
+                <Link 
+                  key={link.href} 
+                  href={link.href} 
+                  className="block text-sm text-neutral-slate hover:text-neutral-ink transition-colors"
+                >
+                  {link.text}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Useful Links Column */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-neutral-ink">Useful Links</h3>
+            <div className="space-y-2">
+              {usefulLinks.map(link => (
+                <Link 
+                  key={link.href} 
+                  href={link.href} 
+                  className="block text-sm text-neutral-slate hover:text-neutral-ink transition-colors"
+                >
+                  {link.text}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Social Column */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-neutral-ink">Social</h3>
+            <div className="space-y-2">
+              {socialLinks.map(link => (
+                <a 
+                  key={link.href} 
+                  href={link.href} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm text-neutral-slate hover:text-neutral-ink transition-colors"
+                >
+                  <span className="text-lg">{link.icon}</span>
+                  {link.text}
+                </a>
+              ))}
+            </div>
+          </div>
+
+        </div>
+
+        {/* Bottom section with copyright */}
+        <div className="mt-12 pt-8 border-t border-neutral-lines">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="text-sm text-neutral-slate">
+              © {new Date().getFullYear()} {companyInfo.name}. All rights reserved.
+            </div>
+            
+            {/* Payment logos */}
+            <div className="flex items-center gap-4">
               <Image 
-                key={logo.src} 
-                src={logo.src} 
-                alt={logo.alt}
-                width={40} // Задаем базовую ширину
-                height={24} // Задаем базовую высоту
-                className="h-6 w-auto opacity-60 transition-opacity hover:opacity-100"
+                src="/visa-logo.svg" 
+                alt="Visa"
+                width={40}
+                height={24}
+                className="h-6 w-auto opacity-60"
               />
-            ))}
+              <Image 
+                src="/mastercard-logo.svg" 
+                alt="Mastercard"
+                width={40}
+                height={24}
+                className="h-6 w-auto opacity-60"
+              />
+              <Image 
+                src="/American_Express_logo.svg" 
+                alt="American Express"
+                width={40}
+                height={24}
+                className="h-6 w-auto opacity-60"
+              />
+              <Image 
+                src="/Maestro_Logo.svg" 
+                alt="Maestro"
+                width={40}
+                height={24}
+                className="h-6 w-auto opacity-60"
+              />
+            </div>
           </div>
-          <div>© {new Date().getFullYear()} PREPARING BUSINESS LTD</div>
         </div>
       </div>
     </footer>

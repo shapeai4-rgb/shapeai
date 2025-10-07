@@ -15,7 +15,7 @@ export default function TermsAndConditionsPage() {
           <strong>PREPARING BUSINESS LTD</strong><br />
           Company no.: 16107292<br />
           Registered office: 12 Skinner Lane, Leeds, England, LS7 1DL<br />
-          Email: info@shapeai.co.uk | Phone: +44 7822016497<br />
+          Email: info@shapeai.co.uk | Phone: +44 7418 638914<br />
           Service: https://shapeai.co.uk
         </p>
         
@@ -226,7 +226,7 @@ export default function TermsAndConditionsPage() {
           <p className="mb-2"><strong>PREPARING BUSINESS LTD</strong></p>
           <p className="mb-2">12 Skinner Lane, Leeds, England, LS7 1DL</p>
           <p className="mb-2">Company no.: 16107292</p>
-          <p>Email: info@shapeai.co.uk | Phone: +44 7822016497</p>
+          <p>Email: info@shapeai.co.uk | Phone: +44 7418 638914</p>
         </div>
       </div>
     </div>

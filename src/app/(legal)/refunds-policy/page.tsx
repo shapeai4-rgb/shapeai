@@ -15,7 +15,7 @@ export default function RefundAndReturnPolicyPage() {
           <strong>PREPARING BUSINESS LTD</strong><br />
           Company no.: 16107292<br />
           Registered office: 12 Skinner Lane, Leeds, England, LS7 1DL<br />
-          Support email: info@shapeai.co.uk | Phone: +44 7822016497<br />
+          Support email: info@shapeai.co.uk | Phone: +44 7418 638914<br />
           Service: https://shapeai.co.uk
         </p>
         
@@ -124,7 +124,7 @@ export default function RefundAndReturnPolicyPage() {
 
         <h2 className="text-2xl font-semibold text-neutral-ink mt-8 mb-4">12. Contact details</h2>
         <div className="bg-neutral-lines/10 p-6 rounded-lg text-neutral-slate">
-          <p className="mb-2"><strong>Support email:</strong> info@shapeai.co.uk | <strong>Phone:</strong> +44 7822016497</p>
+          <p className="mb-2"><strong>Support email:</strong> info@shapeai.co.uk | <strong>Phone:</strong> +44 7418 638914</p>
           <p><strong>Postal:</strong> PREPARING BUSINESS LTD — 12 Skinner Lane, Leeds, England, LS7 1DL</p>
         </div>
       </div>

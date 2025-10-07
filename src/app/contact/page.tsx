@@ -21,7 +21,7 @@ export default function ContactPage() {
           <h2 className="text-xl font-semibold text-neutral-ink">Our Details</h2>
           <p><strong>Company:</strong> PREPARING BUSINESS LTD</p>
           <p><strong>Email:</strong> info@shapeai.co.uk</p>
-          <p><strong>Phone:</strong> +44 7822016497</p>
+          <p><strong>Phone:</strong> +44 7418 638914</p>
           <p>
             We aim to respond to all inquiries within 2 business days.
           </p>

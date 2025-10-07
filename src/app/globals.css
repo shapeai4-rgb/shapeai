@@ -1,0 +1,7 @@
+/* подключаем ваш tailwind.config.* явно (путь из src/app/) */
+@config "../../tailwind.config.ts";
+
+/* новый способ подключения Tailwind в v4 */
+@import "tailwindcss";
+
+/* ваши глобальные кастомизации можно добавить ниже при желании */

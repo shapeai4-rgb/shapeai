@@ -24,8 +24,8 @@ export function Footer() {
     { href: "/ai-use-safety-policy", text: "AI Use & Safety Policy" },
     { href: "/medical-nutrition-disclaimer", text: "Medical & Nutrition Disclaimer" },
     { href: "/contact", text: "Contact" },
-    { href: "/faq", text: "FAQ" },
-    { href: "/pricing", text: "Pricing" },
+    { href: "/#faq", text: "FAQ" },
+    { href: "/#topup", text: "Pricing" },
   ];
 
   // Социальные сети

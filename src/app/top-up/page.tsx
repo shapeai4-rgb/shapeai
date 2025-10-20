@@ -117,7 +117,7 @@ function TopUpCard({ plan, onSelect, isLoggedIn }: { plan: TopUpPlan; onSelect: 
             <p className={cn("mt-1 text-xs", valid ? "text-neutral-slate/80" : "text-status-danger")}>{valid ? "Up to 2 decimals (dot or comma)." : "Please enter a valid amount."}</p>
           </div>
         ) : (
-          <div className="mt-2 text-2xl font-headings font-semibold">{formatCurrency(currency, Number(priceInSelected?.toFixed(0) ?? 0), { trimCents: true })}</div>
+          <div className="mt-2 text-2xl font-headings font-semibold">{formatCurrency(currency, priceInSelected ?? 0)}</div>
         )}
         {plan.tokens && <div className="mt-1 text-xs text-neutral-slate">≈ {plan.tokens.toLocaleString()} tokens</div>}
         <div className="mt-4 text-xs text-neutral-slate">

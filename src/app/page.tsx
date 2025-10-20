@@ -75,12 +75,12 @@ function TopUpCard({ plan, onSelect, isLoggedIn }: { plan: TopUpPlan; onSelect: 
             <input inputMode="decimal" placeholder={symbol + " 12.50"} value={amount} onChange={(e) => setAmount(e.target.value)} className="mt-1 w-full rounded-xl border border-neutral-lines px-3 py-2 text-sm outline-none ring-accent/50 focus:ring-2" />
             <p className={cn("mt-1 text-xs", valid ? "text-neutral-slate/80" : "text-status-danger")}>{valid ? "Up to 2 decimals (dot or comma)." : "Please enter a valid amount."}</p>
           </div>
-        ) : ( <div className="mt-2 text-2xl font-headings font-semibold">{formatCurrency(currency, Number(priceInSelected?.toFixed(0) ?? 0), { trimCents: true })}</div> )}
+        ) : ( <div className="mt-2 text-2xl font-headings font-semibold">{formatCurrency(currency, priceInSelected ?? 0)}</div> )}
         {plan.tokens && <div className="mt-1 text-xs text-neutral-slate">≈ {plan.tokens.toLocaleString()} tokens</div>}
         <div className="mt-4 text-xs text-neutral-slate"> {isLoggedIn ? 'Proceed to checkout' : 'Sign in to Top‑up'} </div>
         <Button onClick={handleCheckout} locked={plan.custom && !valid} disabled={isRedirecting} className="w-full mt-2 text-sm py-2"> {isRedirecting ? 'Redirecting...' : (
             isLoggedIn 
-              ? (plan.custom ? `Top-up ${formatCurrency(currency, priceInSelected ?? 0)}` : `Top-up ${formatCurrency(currency, priceInSelected ?? 0, { trimCents: true })}`)
+              ? `Top-up ${formatCurrency(currency, priceInSelected ?? 0)}`
               : 'Sign up to Top-up'
           )}
         </Button>

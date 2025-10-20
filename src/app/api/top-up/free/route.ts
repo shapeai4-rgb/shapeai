@@ -6,6 +6,7 @@ import { TOP_UP_PRICES, TOKENS_FOR_PLAN } from '@/lib/constants';
 
 const TOKENS_PER_EURO = 10;
 const FX_EUR_GBP = 0.85;
+const FX_EUR_USD = 1.17;
 
 export async function GET(request: Request) {
   try {
@@ -23,7 +24,7 @@ export async function GET(request: Request) {
     // 2. --- Parse URL Parameters ---
     const url = new URL(request.url);
     const amount = parseInt(url.searchParams.get('amount') || '0');
-    const currency = url.searchParams.get('currency') as 'eur' | 'gbp';
+    const currency = url.searchParams.get('currency') as 'eur' | 'gbp' | 'usd';
     const planId = url.searchParams.get('planId');
     const sessionId = url.searchParams.get('sessionId');
 
@@ -42,7 +43,9 @@ export async function GET(request: Request) {
       tokensToAdd = TOKENS_FOR_PLAN[planId as keyof typeof TOKENS_FOR_PLAN] || 0;
     } else {
       // Custom amount logic
-      const amountInEur = currency === 'eur' ? amount / 100 : (amount / 100) / FX_EUR_GBP;
+      const amountInEur = currency === 'eur' ? amount / 100 : 
+                          currency === 'gbp' ? (amount / 100) / FX_EUR_GBP :
+                          (amount / 100) / FX_EUR_USD;
       tokensToAdd = Math.round(amountInEur * TOKENS_PER_EURO);
     }
 
@@ -59,7 +62,9 @@ export async function GET(request: Request) {
         });
 
         // Записываем транзакцию
-        const amountInEur = currency === 'eur' ? amount / 100 : (amount / 100) / FX_EUR_GBP;
+        const amountInEur = currency === 'eur' ? amount / 100 : 
+                            currency === 'gbp' ? (amount / 100) / FX_EUR_GBP :
+                            (amount / 100) / FX_EUR_USD;
         const description = planId 
           ? `Top-up: ${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan`
           : `Top-up: Custom Amount (${currency.toUpperCase()})`;

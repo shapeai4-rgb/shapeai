@@ -217,7 +217,7 @@ function DashboardClient() {
                         <td className="px-4 py-3 text-sm text-neutral-slate">
                           {transaction.amount && transaction.currency ? (
                             <span>
-                              {transaction.currency === 'EUR' ? '€' : transaction.currency === 'GBP' ? '£' : transaction.currency}
+                              {transaction.currency === 'EUR' ? '€' : transaction.currency === 'GBP' ? '£' : transaction.currency === 'USD' ? '$' : transaction.currency}
                               {transaction.amount.toFixed(2)}
                             </span>
                           ) : (

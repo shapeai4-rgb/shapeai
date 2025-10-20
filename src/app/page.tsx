@@ -22,7 +22,7 @@ import { ContactForm } from '@/components/shared/ContactForm';
 // Типы для ответа от AI
 
 // --- Типы и Данные ---
-type Currency = 'EUR' | 'GBP';
+type Currency = 'EUR' | 'GBP' | 'USD';
 type TopUpPlan = { id: string; name: string; priceEUR?: number; tokens?: number; bonus?: string; popular?: boolean; custom?: boolean; };
 type Recipe = { id: string; title: string; kcal: number; macro: { protein: number; fat: number; carbs: number }; time: string; portion: string; image?: string; };
 
@@ -33,8 +33,9 @@ const FAQ = [ { q: "How accurate are calories?", a: "We use BMR/TDEE with a safe
 
 // --- Вспомогательные функции ---
 const FX_EUR_GBP = 0.85;
-function formatCurrency(cur: Currency, amount: number, opts: { trimCents?: boolean } = {}) { const symbol = cur === 'EUR' ? '€' : '£'; const value = opts.trimCents ? amount.toFixed(0) : amount.toFixed(2); return `${symbol}${value}`; }
-function convertEUR(amountEUR: number, to: Currency) { return to === 'EUR' ? amountEUR : amountEUR * FX_EUR_GBP; }
+const FX_EUR_USD = 1.17;
+function formatCurrency(cur: Currency, amount: number, opts: { trimCents?: boolean } = {}) { const symbol = cur === 'EUR' ? '€' : cur === 'GBP' ? '£' : '$'; const value = opts.trimCents ? amount.toFixed(0) : amount.toFixed(2); return `${symbol}${value}`; }
+function convertEUR(amountEUR: number, to: Currency) { return to === 'EUR' ? amountEUR : to === 'GBP' ? amountEUR * FX_EUR_GBP : amountEUR * FX_EUR_USD; }
 function isValidAmount(input: string) { const trimmed = input.trim(); if (!trimmed) return false; return /^\d+(?:[\.,]\d{1,2})?$/.test(trimmed); }
 function normalizeAmount(input: string) { return input.replace(',', '.'); }
 
@@ -43,7 +44,7 @@ function TopUpCard({ plan, onSelect, isLoggedIn }: { plan: TopUpPlan; onSelect: 
   const [amount, setAmount] = useState<string>("");
   const [isRedirecting, setIsRedirecting] = useState(false);
   const currency = useAppStore((state) => state.currency);
-  const symbol = currency === 'EUR' ? '€' : '£';
+  const symbol = currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
   const valid = plan.custom ? isValidAmount(amount) : true;
   const priceInSelected = plan.custom ? (valid ? Number(normalizeAmount(amount)) : null) : (plan.priceEUR != null ? convertEUR(plan.priceEUR, currency) : null);
 

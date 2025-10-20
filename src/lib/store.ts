@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 
 // Определяем типы для нашего хранилища
-type Currency = 'EUR' | 'GBP';
+type Currency = 'EUR' | 'GBP' | 'USD';
 
 type AppState = {
   // Состояние для валюты

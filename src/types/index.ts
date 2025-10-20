@@ -51,7 +51,7 @@ time: string;
 text: string;
 };
 
-export type Currency = 'EUR' | 'GBP';
+export type Currency = 'EUR' | 'GBP' | 'USD';
 
 export type GeneratorFormData = {
   freeText: string;

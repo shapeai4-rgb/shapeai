@@ -210,9 +210,9 @@ export const ACTIVITY_LEVELS = [
 ] as const;
 
 export const TOP_UP_PRICES = {
-  lite: { eur: 900, gbp: 800 },
-  standard: { eur: 1900, gbp: 1600 },
-  pro: { eur: 4900, gbp: 4200 },
+  lite: { eur: 900, gbp: 800, usd: 1053 },
+  standard: { eur: 1900, gbp: 1600, usd: 2223 },
+  pro: { eur: 4900, gbp: 4200, usd: 5733 },
 };
 
 export const TOKENS_FOR_PLAN = {

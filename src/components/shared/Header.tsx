@@ -28,9 +28,9 @@ function CurrencySwitcher() {
   const { currency, setCurrency } = useAppStore();
   return (
     <div className="inline-flex rounded-full bg-neutral-lines/50 p-1">
-      {(['EUR','GBP'] as Currency[]).map(cur => (
+      {(['EUR','GBP','USD'] as Currency[]).map(cur => (
         <button key={cur} onClick={()=>setCurrency(cur)} className={cn("rounded-full px-2.5 py-1 text-xs", currency===cur ? "bg-white shadow font-semibold text-neutral-ink" : "hover:text-neutral-ink")}>
-          {cur==='EUR' ? '€ EUR' : '£ GBP'}
+          {cur==='EUR' ? '€ EUR' : cur==='GBP' ? '£ GBP' : '$ USD'}
         </button>
       ))}
     </div>

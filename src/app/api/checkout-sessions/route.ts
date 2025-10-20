@@ -8,7 +8,7 @@ import { TOP_UP_PRICES } from '@/lib/constants';
 type PlanId = keyof typeof TOP_UP_PRICES;
 
 interface RequestBody {
-  currency: 'eur' | 'gbp';
+  currency: 'eur' | 'gbp' | 'usd';
   planId?: PlanId;
   customAmount?: number; // Amount in smallest currency unit (e.g., cents)
 }

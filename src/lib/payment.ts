@@ -7,7 +7,7 @@ export interface PaymentProvider {
 export interface CheckoutParams {
   userId: string;
   amount: number;
-  currency: 'eur' | 'gbp';
+  currency: 'eur' | 'gbp' | 'usd';
   planId?: string;
   customAmount?: number;
 }

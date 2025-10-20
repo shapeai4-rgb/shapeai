@@ -74,7 +74,7 @@ export default function TermsAndConditionsPage() {
           <code className="bg-neutral-lines/20 px-2 py-1 rounded text-sm">total_tokens = word_cost_tokens + day_cost_tokens + sum(selected_option_token_costs)</code>
         </p>
         <p className="text-neutral-slate mb-4">
-          4.7 <strong>Display & consent.</strong> Prior to confirmation the Service will display a token breakdown (word cost, day cost, each selected add-on) and the total tokens (and, when applicable, fiat equivalent). By confirming you authorise deduction of the displayed Tokens from your Account.
+          4.7 <strong>Display & consent.</strong> Prior to confirmation the Service will display a token breakdown (word cost, day cost, each selected add-on) and the total tokens (and, when applicable, fiat equivalent). Fiat amounts are shown with exactly two (2) decimal places. By confirming you authorise deduction of the displayed Tokens from your Account.
         </p>
         <p className="text-neutral-slate mb-4">
           4.8 <strong>Issuance, redemption and transfers.</strong> Tokens are credited to your Account after successful payment. Tokens are typically non-transferable and bound to your Account, unless expressly allowed in writing. Promotional Tokens may have different rules.
@@ -91,7 +91,7 @@ export default function TermsAndConditionsPage() {
           5.2 Payments are processed through third-party payment providers; we generally do not store full card data. You warrant you are authorised to use the chosen payment method.
         </p>
         <p className="text-neutral-slate mb-4">
-          5.3 At checkout you will see: Token quantity, Token nominal value (fiat equivalent), total fiat to be charged and any taxes/fees. Confirm these before completing payment.
+          5.3 At checkout you will see: Token quantity, Token nominal value (fiat equivalent), and the total fiat to be charged in the selected purchase currency (EUR, GBP or USD), plus any taxes/fees. Fiat amounts are shown with exactly two (2) decimal places. Confirm these before completing payment.
         </p>
         <p className="text-neutral-slate mb-6">
           5.4 For immediate digital supply (downloadable PDFs), risk passes to you upon delivery of access/download link.

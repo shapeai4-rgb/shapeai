@@ -29,6 +29,7 @@ export default function RefundAndReturnPolicyPage() {
           <li>Redeemed Tokens (used in Generation Transactions) are generally non-refundable except for system errors, materially defective or mis-described Products, or as required by law.</li>
           <li>Promotional/bonus Tokens are non-refundable unless promotion terms say otherwise.</li>
           <li>To request a refund, contact info@shapeai.co.uk with your order / generation ID and supporting evidence.</li>
+          <li>Refunds are issued in the original purchase currency (EUR, GBP, USD).</li>
         </ul>
 
         <hr className="my-8 border-neutral-lines" />
@@ -52,10 +53,10 @@ export default function RefundAndReturnPolicyPage() {
 
         <h2 className="text-2xl font-semibold text-neutral-ink mt-8 mb-4">4. Refund principles (binding rules)</h2>
         <p className="text-neutral-slate mb-4">
-          4.1 <strong>Refund cap.</strong> Refunds do not exceed the original paid amount (net of non-refundable processor fees) in the purchase currency.
+          4.1 <strong>Refund cap.</strong> Refunds do not exceed the original paid amount (net of non-refundable processor fees) in the original purchase currency (EUR, GBP, USD).
         </p>
         <p className="text-neutral-slate mb-4">
-          4.2 <strong>No refund for redeemed Tokens except:</strong> (a) system error prevented delivery of output; (b) Product is materially defective or not as described; (c) otherwise required by law. In such cases we will either re-credit the exact Tokens to your Account or issue a fiat refund equal to the token value recorded for that Generation Transaction.
+          4.2 <strong>No refund for redeemed Tokens except:</strong> (a) system error prevented delivery of output; (b) Product is materially defective or not as described; (c) otherwise required by law. In such cases we will either re-credit the exact Tokens to your Account or issue a fiat refund in the original purchase currency (EUR, GBP, USD) equal to the token value recorded for that Generation Transaction, displayed with exactly two decimal places.
         </p>
         <p className="text-neutral-slate mb-4">
           4.3 <strong>Partial failures / corrupt output.</strong> If output is corrupted or incomplete we will offer: (i) an immediate free repeat generation of the same request (no Tokens deducted); or (ii) refund / re-credit for the affected Generation Transaction.

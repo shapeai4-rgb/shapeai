@@ -33,7 +33,7 @@ export default function PrivacyPolicyPage() {
         <ul className="list-disc pl-6 text-neutral-slate mb-6 space-y-2">
           <li><strong>Identity & contact:</strong> name (optional), email, postal/billing address if required.</li>
           <li><strong>Account data:</strong> username, hashed password, profile settings and preferences.</li>
-          <li><strong>Payment & transactions:</strong> order refs, transaction IDs, amounts, dates — we do not store full card numbers or CVV unless explicitly stated (payments handled by third-party processors).</li>
+          <li><strong>Payment & transactions:</strong> order refs, transaction IDs, amounts, <em>currency (EUR, GBP, USD)</em>, dates — we do not store full card numbers or CVV unless explicitly stated (payments handled by third-party processors).</li>
           <li><strong>Service usage & content:</strong> token ledger, purchase history, Generation Transaction logs (prompt metadata, words count, days, selected options), generated outputs, download/access logs.</li>
           <li><strong>Health / dietary data (sensitive):</strong> allergies, medical conditions, dietary requirements, weight, height, age — processed only with explicit consent or other lawful basis.</li>
           <li><strong>Technical & device:</strong> IP address, device type, browser, user-agent, access timestamps, crash logs.</li>

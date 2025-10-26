@@ -48,23 +48,51 @@ function TopUpCard({ plan, onSelect, isLoggedIn }: { plan: TopUpPlan; onSelect: 
   const valid = plan.custom ? isValidAmount(amount) : true;
   const priceInSelected = plan.custom ? (valid ? Number(normalizeAmount(amount)) : null) : (plan.priceEUR != null ? convertEUR(plan.priceEUR, currency) : null);
 
-  const handleCheckout = async () => {
-    if (!isLoggedIn) { onSelect(); return; }
-    setIsRedirecting(true);
-    try {
-      const lowerCaseCurrency = currency.toLowerCase();
-      const requestBody = plan.custom ? { customAmount: Math.round(Number(normalizeAmount(amount)) * 100), currency: lowerCaseCurrency } : { planId: plan.id, currency: lowerCaseCurrency };
-      if (plan.custom && !valid) { alert("Please enter a valid amount."); setIsRedirecting(false); return; }
-      const { data } = await axios.post('/api/checkout-sessions', requestBody);
-      if (data.url) window.location.href = data.url;
-    } catch (error) {
-      console.error("Checkout failed:", error);
-      alert("An error occurred. Please try again.");
-      setIsRedirecting(false);
-    }
-  };
+    const handleCheckout = async () => {
+        if (!isLoggedIn) { onSelect(); return; }
 
-  return (
+        setIsRedirecting(true);
+
+        try {
+            const selectedPlan = {
+                id: plan.id,
+                name: plan.name,
+                price: priceInSelected,
+                currency,
+                tokens: plan.tokens,
+            };
+
+            localStorage.setItem("selectedPlan", JSON.stringify(selectedPlan));
+
+            // 👇 створюємо ордер і редіректимось
+            const res = await fetch("/api/bizon/create-order", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: "User Name",
+                    email: "user@example.com",
+                    amount: Number(priceInSelected!.toFixed(2)),
+                    currency,
+                    description: `Top-up for ${plan.name}`,
+                }),
+            });
+
+            const data = await res.json();
+            if (data.redirectUrl) {
+                window.location.href = data.redirectUrl;
+            } else {
+                console.error("Payment error:", data);
+                alert("Payment failed: " + (data.error || "Unknown error"));
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Payment error: " + err);
+        } finally {
+            setIsRedirecting(false);
+        }
+    };
+
+    return (
     <AnimatedCard>
       <article className={cn("relative rounded-card border p-5 shadow-soft h-full", plan.popular ? "border-accent bg-accent/10" : "border-neutral-lines bg-white")}>
         {plan.popular && <div className="absolute -top-2 right-4 rounded-full bg-accent px-2 py-0.5 text-xs text-white">Most popular</div>}

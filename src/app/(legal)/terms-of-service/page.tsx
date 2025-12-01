@@ -11,7 +11,7 @@ export default function TermsAndConditionsPage() {
       <div className="prose prose-lg max-w-none">
         <h1 className="text-3xl font-bold text-neutral-ink mb-2">TERMS & CONDITIONS</h1>
         <p className="text-neutral-slate mb-8">
-          <strong>Effective date:</strong> 12 August 2025<br />
+          <strong>Effective date:</strong> 2 October 2025<br />
           <strong>PREPARING BUSINESS LTD</strong><br />
           Company no.: 16107292<br />
           Registered office: 12 Skinner Lane, Leeds, England, LS7 1DL<br />
@@ -34,7 +34,7 @@ export default function TermsAndConditionsPage() {
         <ul className="list-disc pl-6 text-neutral-slate mb-6 space-y-2">
           <li><strong>Account</strong> — your registered user account.</li>
           <li><strong>Tokens</strong> — internal virtual credits used to purchase or redeem Products and Services on the Service.</li>
-          <li><strong>Product(s)/Service(s)</strong> — AI-generated meal plans, downloadable files (PDFs), consultations, bespoke plans, subscriptions, and any other items offered via the Service.</li>
+          <li><strong>Product(s)/Service(s)</strong> — AI-generated meal plans, downloadable files (PDFs), bespoke plans, and any other items offered via the Service.</li>
           <li><strong>Generator</strong> — the AI model(s) and algorithms used to create personalised content.</li>
           <li><strong>Generation Transaction</strong> — a recorded token deduction corresponding to a confirmed generation request (includes prompt length, day count, options and total tokens charged).</li>
           <li><strong>User / You</strong> — the person or legal entity using the Service.</li>
@@ -42,7 +42,10 @@ export default function TermsAndConditionsPage() {
 
         <h2 className="text-2xl font-semibold text-neutral-ink mt-8 mb-4">3. Eligibility and account security</h2>
         <p className="text-neutral-slate mb-4">
-          3.1 You must be 18 years or older to use the Service. If you act on behalf of a legal entity you confirm you have authority to bind that entity.
+          3.1 You must be 18 years or older to use the Service. By creating an Account or using the Service you confirm that you are at least 18 years old. If you act on behalf of a legal entity you confirm you have authority to bind that entity.
+        </p>
+        <p className="text-neutral-slate mb-4">
+          3.1A We do not routinely verify age, but we reserve the right to request proof of age and to suspend or close Accounts where we reasonably believe the user is under 18.
         </p>
         <p className="text-neutral-slate mb-4">
           3.2 Provide accurate, complete and current information during registration. You are responsible for maintaining the confidentiality of Account credentials and for all activity under your Account.
@@ -77,7 +80,7 @@ export default function TermsAndConditionsPage() {
           4.7 <strong>Display & consent.</strong> Prior to confirmation the Service will display a token breakdown (word cost, day cost, each selected add-on) and the total tokens (and, when applicable, fiat equivalent). Fiat amounts are shown with exactly two (2) decimal places. By confirming you authorise deduction of the displayed Tokens from your Account.
         </p>
         <p className="text-neutral-slate mb-4">
-          4.8 <strong>Issuance, redemption and transfers.</strong> Tokens are credited to your Account after successful payment. Tokens are typically non-transferable and bound to your Account, unless expressly allowed in writing. Promotional Tokens may have different rules.
+          4.8 <strong>Issuance, redemption and transfers.</strong> Tokens are credited to your Account after successful payment. Tokens are typically non-transferable and bound to your Account, unless expressly allowed in writing.
         </p>
         <p className="text-neutral-slate mb-6">
           4.9 <strong>Changes to pricing.</strong> We may change Token pricing or the Pricing Structure at any time; changes apply prospectively to purchases or generation requests made after the change is posted.

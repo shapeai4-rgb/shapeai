@@ -6,6 +6,7 @@ export function Footer() {
   // Данные компании
   const companyInfo = {
     name: "PREPARING BUSINESS LTD",
+    companyNumber: "16107292",
     address: "12 Skinner Lane, Leeds, England, LS7 1DL",
     email: "info@shapeai.co.uk",
     phone: "+44 7418 638914"
@@ -31,9 +32,14 @@ export function Footer() {
   // Социальные сети
   const socialLinks = [
     { 
-      href: "https://www.instagram.com/recipegenshop", 
+      href: "https://www.instagram.com/shapeai.uk/?igsh=NG04bHhueXFvemhm&utm_source=qr#", 
       text: "Instagram",
       icon: "📷"
+    },
+    {
+      href: "https://www.linkedin.com/company/shape%E2%80%94ai",
+      text: "LinkedIn",
+      icon: "in"
     },
   ];
 
@@ -47,6 +53,7 @@ export function Footer() {
             <h3 className="text-lg font-semibold text-neutral-ink">Company</h3>
             <div className="space-y-2 text-sm text-neutral-slate">
               <div className="font-medium text-neutral-ink">{companyInfo.name}</div>
+              <div>Company no.: {companyInfo.companyNumber}</div>
               <div>{companyInfo.address}</div>
               <div>
                 <a href={`mailto:${companyInfo.email}`} className="hover:text-neutral-ink transition-colors">

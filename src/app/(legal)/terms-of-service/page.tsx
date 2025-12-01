@@ -129,7 +129,7 @@ export default function TermsAndConditionsPage() {
 
         <h2 className="text-2xl font-semibold text-neutral-ink mt-8 mb-4">9. Intellectual property rights</h2>
         <p className="text-neutral-slate mb-4">
-          9.1 All rights in the Service, software, Generator, designs and content are owned by us or licensed to us. Nothing herein transfers ownership to you.
+          9.1 <strong>Ownership.</strong> All intellectual property rights in and to the Service, including the website, software, the Generator, designs and content, are and remain the property of PREPARING BUSINESS LTD or, where they belong to third parties, are lawfully licensed to PREPARING BUSINESS LTD. Nothing in these Terms transfers any ownership rights in such intellectual property to you.
         </p>
         <p className="text-neutral-slate mb-6">
           9.2 On purchase or lawful access we grant a limited, non-exclusive, non-transferable licence for personal, non-commercial use of purchased Products unless otherwise agreed in writing. Commercial use requires prior written consent.

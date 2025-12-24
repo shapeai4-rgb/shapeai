@@ -71,7 +71,7 @@ export default function PrivacyPolicyPage() {
         </p>
         <div className="bg-neutral-lines/10 p-4 rounded-lg text-neutral-slate mb-6">
           <p className="text-sm italic">
-            <strong>Note:</strong> Specific providers include payment processors, OpenAI for AI services, cloud hosting providers, analytics services, and customer support platforms. Detailed list available upon request.
+            <strong>Note:</strong> Specific providers include payment processors, third-party AI model providers, cloud hosting providers, analytics services, and customer support platforms. A detailed list of key providers is available on request.
           </p>
         </div>
 
@@ -119,7 +119,7 @@ export default function PrivacyPolicyPage() {
 
         <h2 className="text-2xl font-semibold text-neutral-ink mt-8 mb-4">10. Children</h2>
         <p className="text-neutral-slate mb-6">
-          Service is for users aged 18+. We do not knowingly collect data from children under 18. If you suspect data from a child has been collected contact info@shapeai.co.uk.
+          Service is for users aged 18+. We do not knowingly collect data from children under 18 and do not intentionally target them. If you suspect data from a child has been collected contact info@shapeai.co.uk so we can take appropriate steps (for example, close the account and delete data where required).
         </p>
 
         <hr className="my-8 border-neutral-lines" />

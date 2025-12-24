@@ -20,6 +20,8 @@ export default function ContactPage() {
         <div className="space-y-4 text-neutral-slate">
           <h2 className="text-xl font-semibold text-neutral-ink">Our Details</h2>
           <p><strong>Company:</strong> PREPARING BUSINESS LTD</p>
+          <p><strong>Company number:</strong> 16107292</p>
+          <p><strong>Address:</strong> 12 Skinner Lane, Leeds, England, LS7 1DL</p>
           <p><strong>Email:</strong> info@shapeai.co.uk</p>
           <p><strong>Phone:</strong> +44 7418 638914</p>
           <p>

@@ -111,7 +111,7 @@ function TopUpCard({
             });
 
             const data = await res.json();
-
+            console.log("🔥 Bizon API response:", data);
             if (data.redirectUrl) {
                 window.location.href = data.redirectUrl;
             } else {

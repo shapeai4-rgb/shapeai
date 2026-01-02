@@ -104,7 +104,7 @@ function TopUpCard({
                 body: JSON.stringify({
                     name: "User Name",
                     email: "user@example.com",
-                    amount: Number(priceInSelected!.toFixed(2)),
+                    amount: Number(priceInSelected),
                     currency,
                     description: `Top-up for ${plan.name}`,
                 }),

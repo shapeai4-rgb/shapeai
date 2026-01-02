@@ -1,15 +1,17 @@
-// Содержимое для src/middleware.ts
+import { withAuth } from "next-auth/middleware";
+import type { NextRequest } from "next/server";
 
-// Экспортируем дефолтный middleware из next-auth
-// Он автоматически будет защищать все страницы, указанные в 'matcher'
-export { default } from "next-auth/middleware";
+export default withAuth(
+    function middleware(req: NextRequest) {
+        // можна залишити порожнім
+    },
+    {
+        callbacks: {
+            authorized: ({ token }) => !!token,
+        },
+    }
+);
 
-// 'config' определяет, к каким именно страницам применять этот middleware
 export const config = {
-  matcher: [
-    "/plan", // Защищаем страницу с планом питания
-    // Сюда можно добавлять и другие страницы в будущем, например:
-    // "/settings",
-    // "/api/protected-route",
-  ],
+    matcher: ["/plan"],
 };

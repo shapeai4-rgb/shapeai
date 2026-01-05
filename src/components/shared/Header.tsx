@@ -49,7 +49,7 @@ export function Header() {
         <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
             <Image src="/logo.webp" alt="ShapeAI Logo" width={32} height={32} />
-            <span className="font-headings font-semibold tracking-tight">ShapeAI.co.uk</span>
+            <span className="font-headings font-semibold tracking-tight">ShapeAI.Co.uk</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-sm text-neutral-slate">

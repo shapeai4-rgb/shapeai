@@ -1,8 +1,8 @@
-// src/app/api/bizon/add-tokens/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { calculateTokens, PlanType, Currency } from "@/lib/tokenCalculator";
 
 export async function POST(req: Request) {
     try {
@@ -14,15 +14,21 @@ export async function POST(req: Request) {
 
         const body = await req.json();
 
-        const tokens = Number(body.tokens);
         const amount = Number(body.amount);
+        const planType = body.planType as PlanType;
+        const currency = (body.currency ?? "EUR") as Currency;
+        const planName = body.planName ?? planType;
 
-        if (!Number.isFinite(tokens) || tokens <= 0) {
-            return NextResponse.json(
-                { error: "Invalid tokens amount" },
-                { status: 400 }
-            );
+        if (!Number.isFinite(amount) || amount <= 0) {
+            return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
         }
+
+        if (!["lite", "standard", "pro", "custom"].includes(planType)) {
+            return NextResponse.json({ error: "Invalid plan type" }, { status: 400 });
+        }
+
+        // ✅ SINGLE SOURCE OF TRUTH
+        const tokens = calculateTokens(amount, planType);
 
         const user = await prisma.user.findUnique({
             where: { email: session.user.email },
@@ -32,7 +38,6 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        // ✅ ATOMIC UPDATE
         const updatedUser = await prisma.user.update({
             where: { id: user.id },
             data: {
@@ -47,20 +52,21 @@ export async function POST(req: Request) {
                 userId: user.id,
                 action: "topup",
                 tokenAmount: tokens,
-                amount: Number.isFinite(amount) ? amount : null,
-                currency: body.currency ?? "EUR",
-                description: `Top-up: ${body.planName ?? "Unknown plan"}`,
+                amount,
+                currency,
+                description: `Top-up: ${planName}`,
             },
         });
 
         return NextResponse.json({
             success: true,
+            tokensAdded: tokens,
             newBalance: updatedUser.tokenBalance,
         });
-    } catch (err) {
-        console.error("💥 Add tokens error:", err);
+    } catch (e: any) {
+        console.error("add-tokens error:", e);
         return NextResponse.json(
-            { error: err instanceof Error ? err.message : "Server error" },
+            { error: "Failed to add tokens" },
             { status: 500 }
         );
     }

@@ -5,8 +5,10 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { CheckCircle } from "lucide-react";
 
+type Status = "loading" | "success" | "error";
+
 export default function PaymentSuccessPage() {
-    const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+    const [status, setStatus] = useState<Status>("loading");
     const [balance, setBalance] = useState<number | null>(null);
     const router = useRouter();
 
@@ -18,35 +20,28 @@ export default function PaymentSuccessPage() {
 
                 const plan = JSON.parse(stored);
 
-                const tokens = Number(plan.tokens);
-                const amount = Number(plan.price);
-
-                if (!Number.isFinite(tokens) || tokens <= 0) {
-                    throw new Error("Invalid plan tokens");
-                }
-
                 const res = await fetch("/api/bizon/add-tokens", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        planName: plan.name,
-                        amount,
+                        amount: plan.price,
                         currency: plan.currency,
-                        tokens,
+                        planType: plan.type,
+                        planName: plan.name,
                     }),
                 });
 
                 const data = await res.json();
 
-                if (!res.ok) {
-                    throw new Error(data.error || "Token processing failed");
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || "Token credit failed");
                 }
 
                 setBalance(data.newBalance);
                 setStatus("success");
                 localStorage.removeItem("selectedPlan");
             } catch (err) {
-                console.error(err);
+                console.error("Payment confirmation error:", err);
                 setStatus("error");
             }
         }

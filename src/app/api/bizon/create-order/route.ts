@@ -1,10 +1,7 @@
-// src/app/api/bizon/create-order/route.ts
 import { NextResponse } from "next/server";
 import https from "https";
 
 export const runtime = "nodejs";
-
-/* ========= helpers ========= */
 
 function env(name: string): string {
     const v = process.env[name];
@@ -14,9 +11,7 @@ function env(name: string): string {
 
 function formatAmount(v: any): string {
     const n = Number(v);
-    if (!Number.isFinite(n) || n <= 0) {
-        throw new Error("Invalid amount");
-    }
+    if (!Number.isFinite(n) || n <= 0) throw new Error("Invalid amount");
     return n.toFixed(2);
 }
 
@@ -24,48 +19,25 @@ function getClientIp(req: Request): string {
     return (
         req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
         req.headers.get("x-real-ip") ||
-        "1.1.1.1" // fallback, але не localhost
+        "1.1.1.1"
     );
 }
-
-function loadCert() {
-    return {
-        pfx: Buffer.from(
-            env("BIZON_CERT_P12_BASE64").replace(/\s+/g, ""),
-            "base64"
-        ),
-        passphrase: env("BIZON_CERT_PASSWORD"),
-    };
-}
-
-/* ========= API ========= */
 
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { pfx, passphrase } = loadCert();
 
         const payload = {
             project: env("BIZON_PROJECT"),
             amount: formatAmount(body.amount),
             currency: body.currency ?? "EUR",
-            description: body.description ?? "Top-up",
+            description: body.description ?? "Token top-up",
 
             client: {
                 name: body.name ?? "Customer",
                 email: body.email ?? "customer@example.com",
                 phone: body.phone ?? "+380000000000",
-
-                address: {
-                    country: "GB",
-                    city: "London",
-                    street: "Unknown",
-                    zip: "SW1A1AA",
-                },
-
-                location: {
-                    ip: getClientIp(req),
-                },
+                location: { ip: getClientIp(req) },
             },
 
             options: {
@@ -74,28 +46,25 @@ export async function POST(req: Request) {
                 auto_charge: 1,
                 form: "redirect",
                 language: "en",
-                force3d: 1, // 🔥 ВАЖЛИВО: number
+                force3d: 1,
             },
         };
 
         const data = JSON.stringify(payload);
-        console.log("📦 Sending payload to Bizon:", data);
 
         const agent = new https.Agent({
-            pfx,
-            passphrase,
-            rejectUnauthorized: true, // PROD
+            pfx: Buffer.from(
+                env("BIZON_CERT_P12_BASE64").replace(/\s+/g, ""),
+                "base64"
+            ),
+            passphrase: env("BIZON_CERT_PASSWORD"),
+            rejectUnauthorized: true,
         });
 
-        const result = await new Promise<{
-            status: number;
-            headers: any;
-            body: string;
-        }>((resolve, reject) => {
+        const result = await new Promise<any>((resolve, reject) => {
             const r = https.request(
                 {
                     hostname: "api.bizon.one",
-                    port: 443,
                     path: "/orders/create",
                     method: "POST",
                     agent,
@@ -110,15 +79,7 @@ export async function POST(req: Request) {
                     },
                 },
                 (res) => {
-                    let body = "";
-                    res.on("data", (c) => (body += c));
-                    res.on("end", () =>
-                        resolve({
-                            status: res.statusCode ?? 0,
-                            headers: res.headers,
-                            body,
-                        })
-                    );
+                    resolve({ headers: res.headers });
                 }
             );
 
@@ -127,22 +88,12 @@ export async function POST(req: Request) {
             r.end();
         });
 
-        const redirectUrl = result.headers?.location;
-
-        if (!redirectUrl) {
-            console.error("❌ BIZON RAW RESPONSE:", result.body);
-            return NextResponse.json(
-                { error: "No redirect", raw: result.body },
-                { status: 502 }
-            );
+        if (!result.headers?.location) {
+            throw new Error("No redirect from Bizon");
         }
 
-        // 👉 ФРОНТ ДАЛІ РОБИТЬ:
-        // window.location.href = redirectUrl
-
-        return NextResponse.json({ redirectUrl });
+        return NextResponse.json({ redirectUrl: result.headers.location });
     } catch (e: any) {
-        console.error("💥 BIZON ERROR:", e);
         return NextResponse.json({ error: e.message }, { status: 500 });
     }
 }

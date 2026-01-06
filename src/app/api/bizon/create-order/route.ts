@@ -27,18 +27,35 @@ export async function POST(req: Request) {
     try {
         const body = await req.json();
 
+        const currency = body.currency ?? "EUR";
+
+        /**
+         * IMPORTANT:
+         * Bizon requires full client address for GBP transactions
+         * (UK / PSD2 rules)
+         */
+        const client = {
+            name: body.name ?? "Customer",
+            email: body.email ?? "customer@example.com",
+            phone: body.phone ?? "+447000000000",
+
+            country: body.country ?? "GB",      // ISO-2
+            city: body.city ?? "London",
+            address: body.address ?? "221B Baker Street",
+            zip: body.zip ?? "NW1 6XE",
+
+            location: {
+                ip: getClientIp(req),
+            },
+        };
+
         const payload = {
             project: env("BIZON_PROJECT"),
             amount: formatAmount(body.amount),
-            currency: body.currency ?? "EUR",
+            currency,
             description: body.description ?? "Token top-up",
 
-            client: {
-                name: body.name ?? "Customer",
-                email: body.email ?? "customer@example.com",
-                phone: body.phone ?? "+380000000000",
-                location: { ip: getClientIp(req) },
-            },
+            client,
 
             options: {
                 return_url: env("BIZON_RETURN_URL"),
@@ -79,7 +96,10 @@ export async function POST(req: Request) {
                     },
                 },
                 (res) => {
-                    resolve({ headers: res.headers });
+                    resolve({
+                        statusCode: res.statusCode,
+                        headers: res.headers,
+                    });
                 }
             );
 
@@ -88,12 +108,18 @@ export async function POST(req: Request) {
             r.end();
         });
 
-        if (!result.headers?.location) {
-            throw new Error("No redirect from Bizon");
+        const redirectUrl = result.headers?.location;
+
+        if (!redirectUrl) {
+            throw new Error("No redirect URL from Bizon");
         }
 
-        return NextResponse.json({ redirectUrl: result.headers.location });
+        return NextResponse.json({ redirectUrl });
     } catch (e: any) {
-        return NextResponse.json({ error: e.message }, { status: 500 });
+        console.error("Bizon create-order error:", e);
+        return NextResponse.json(
+            { error: e.message || "Bizon order failed" },
+            { status: 500 }
+        );
     }
 }

@@ -1,12 +1,10 @@
+// src/app/api/bizon/create-order/route.ts
 import { NextResponse } from "next/server";
 import https from "https";
-import crypto from "crypto";
 
 export const runtime = "nodejs";
 
-/* =======================
-   Helpers
-======================= */
+/* ========= helpers ========= */
 
 function env(name: string): string {
     const v = process.env[name];
@@ -14,76 +12,79 @@ function env(name: string): string {
     return v.trim();
 }
 
-/**
- * ✅ ЄДИНА ПРАВИЛЬНА НОРМАЛІЗАЦІЯ ПАРОЛЯ
- * - НЕ base64
- * - лише відновлення "+"
- */
-function normalizePassphrase(raw: string): string {
-    return raw.trim().replace(/ /g, "+");
-}
-
-/**
- * Завантаження сертифіката (.p12)
- */
-function loadCertificate() {
-    const pfx = Buffer.from(
-        env("BIZON_CERT_P12_BASE64")
-            .replace(/\n/g, "")
-            .replace(/\r/g, ""),
-        "base64"
-    );
-
-    const passphrase = normalizePassphrase(
-        env("BIZON_CERT_PASSWORD")
-    );
-
-    return { pfx, passphrase };
-}
-
-function formatAmount(value: any): string {
-    const num = Number(value);
-    if (!Number.isFinite(num) || num <= 0) {
+function formatAmount(v: any): string {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n <= 0) {
         throw new Error("Invalid amount");
     }
-    return num.toFixed(2);
+    return n.toFixed(2);
 }
 
-/* =======================
-   API Handler
-======================= */
+function getClientIp(req: Request): string {
+    return (
+        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+        req.headers.get("x-real-ip") ||
+        "1.1.1.1" // fallback, але не localhost
+    );
+}
+
+function loadCert() {
+    return {
+        pfx: Buffer.from(
+            env("BIZON_CERT_P12_BASE64").replace(/\s+/g, ""),
+            "base64"
+        ),
+        passphrase: env("BIZON_CERT_PASSWORD"),
+    };
+}
+
+/* ========= API ========= */
 
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-
-        const { pfx, passphrase } = loadCertificate();
+        const { pfx, passphrase } = loadCert();
 
         const payload = {
+            project: env("BIZON_PROJECT"),
             amount: formatAmount(body.amount),
-            currency: body.currency,
+            currency: body.currency ?? "EUR",
             description: body.description ?? "Top-up",
-            merchant_order_id: crypto.randomUUID(),
+
             client: {
                 name: body.name ?? "Customer",
                 email: body.email ?? "customer@example.com",
                 phone: body.phone ?? "+380000000000",
+
+                address: {
+                    country: "GB",
+                    city: "London",
+                    street: "Unknown",
+                    zip: "SW1A1AA",
+                },
+
+                location: {
+                    ip: getClientIp(req),
+                },
             },
+
             options: {
                 return_url: env("BIZON_RETURN_URL"),
+                fail_url: env("BIZON_FAIL_URL"),
                 auto_charge: 1,
+                form: "redirect",
                 language: "en",
+                force3d: 1, // 🔥 ВАЖЛИВО: number
             },
         };
 
         const data = JSON.stringify(payload);
+        console.log("📦 Sending payload to Bizon:", data);
 
         const agent = new https.Agent({
             pfx,
             passphrase,
-            keepAlive: false,
-            maxSockets: 1,
-            rejectUnauthorized: true,
+            rejectUnauthorized: true, // PROD
         });
 
         const result = await new Promise<{
@@ -106,9 +107,7 @@ export async function POST(req: Request) {
                             ).toString("base64"),
                         "Content-Type": "application/json",
                         "Content-Length": Buffer.byteLength(data),
-                        Connection: "close",
                     },
-                    timeout: 15000,
                 },
                 (res) => {
                     let body = "";
@@ -128,25 +127,22 @@ export async function POST(req: Request) {
             r.end();
         });
 
-        if (!result.headers?.location) {
+        const redirectUrl = result.headers?.location;
+
+        if (!redirectUrl) {
             console.error("❌ BIZON RAW RESPONSE:", result.body);
             return NextResponse.json(
-                {
-                    error: "Bizon did not return redirect URL",
-                    raw: result.body,
-                },
+                { error: "No redirect", raw: result.body },
                 { status: 502 }
             );
         }
 
-        return NextResponse.json({
-            redirectUrl: result.headers.location,
-        });
+        // 👉 ФРОНТ ДАЛІ РОБИТЬ:
+        // window.location.href = redirectUrl
+
+        return NextResponse.json({ redirectUrl });
     } catch (e: any) {
-        console.error("❌ BIZON ERROR:", e);
-        return NextResponse.json(
-            { error: e.message ?? "Internal error" },
-            { status: 500 }
-        );
+        console.error("💥 BIZON ERROR:", e);
+        return NextResponse.json({ error: e.message }, { status: 500 });
     }
 }

@@ -1,3 +1,4 @@
+// src/app/api/bizon/add-tokens/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
@@ -11,9 +12,12 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const { planName, amount, currency, tokens } = await req.json();
+        const body = await req.json();
 
-        if (!Number.isInteger(tokens) || tokens <= 0) {
+        const tokens = Number(body.tokens);
+        const amount = Number(body.amount);
+
+        if (!Number.isFinite(tokens) || tokens <= 0) {
             return NextResponse.json(
                 { error: "Invalid tokens amount" },
                 { status: 400 }
@@ -28,7 +32,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
 
-        // ✅ ATOMIC INCREMENT
+        // ✅ ATOMIC UPDATE
         const updatedUser = await prisma.user.update({
             where: { id: user.id },
             data: {
@@ -43,9 +47,9 @@ export async function POST(req: Request) {
                 userId: user.id,
                 action: "topup",
                 tokenAmount: tokens,
-                amount,
-                currency,
-                description: `Top-up: ${planName}`,
+                amount: Number.isFinite(amount) ? amount : null,
+                currency: body.currency ?? "EUR",
+                description: `Top-up: ${body.planName ?? "Unknown plan"}`,
             },
         });
 

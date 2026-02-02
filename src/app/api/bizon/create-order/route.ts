@@ -1,125 +1,81 @@
 import { NextResponse } from "next/server";
-import https from "https";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import crypto from "crypto";
 
 export const runtime = "nodejs";
 
-function env(name: string): string {
-    const v = process.env[name];
-    if (!v) throw new Error(`Missing env: ${name}`);
-    return v.trim();
-}
-
-function formatAmount(v: any): string {
-    const n = Number(v);
-    if (!Number.isFinite(n) || n <= 0) throw new Error("Invalid amount");
-    return n.toFixed(2);
-}
-
-function getClientIp(req: Request): string {
-    return (
-        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-        req.headers.get("x-real-ip") ||
-        "1.1.1.1"
-    );
-}
+const TM_API_URL = process.env.TRANSFERMIT_API_URL!;
+const TM_API_KEY = process.env.TRANSFERMIT_API_KEY!;
+const SITE_URL = process.env.TRANSFERMIT_WEBSITE_URL!;
+const SUCCESS_URL = process.env.TRANSFERMIT_SUCCESS_URL!;
+const DECLINE_URL = process.env.TRANSFERMIT_DECLINE_URL!;
 
 export async function POST(req: Request) {
     try {
-        const body = await req.json();
-
-        const currency = body.currency ?? "EUR";
-
-        /**
-         * IMPORTANT:
-         * Bizon requires full client address for GBP transactions
-         * (UK / PSD2 rules)
-         */
-        const client = {
-            name: body.name ?? "Customer",
-            email: body.email ?? "customer@example.com",
-            phone: body.phone ?? "+447000000000",
-
-            country: body.country ?? "GB",      // ISO-2
-            city: body.city ?? "London",
-            address: body.address ?? "221B Baker Street",
-            zip: body.zip ?? "NW1 6XE",
-
-            location: {
-                ip: getClientIp(req),
-            },
-        };
-
-        const payload = {
-            project: env("BIZON_PROJECT"),
-            amount: formatAmount(body.amount),
-            currency,
-            description: body.description ?? "Token top-up",
-
-            client,
-
-            options: {
-                return_url: env("BIZON_RETURN_URL"),
-                fail_url: env("BIZON_FAIL_URL"),
-                auto_charge: 1,
-                form: "redirect",
-                language: "en",
-                force3d: 1,
-            },
-        };
-
-        const data = JSON.stringify(payload);
-
-        const agent = new https.Agent({
-            pfx: Buffer.from(
-                env("BIZON_CERT_P12_BASE64").replace(/\s+/g, ""),
-                "base64"
-            ),
-            passphrase: env("BIZON_CERT_PASSWORD"),
-            rejectUnauthorized: true,
-        });
-
-        const result = await new Promise<any>((resolve, reject) => {
-            const r = https.request(
-                {
-                    hostname: "api.bizon.one",
-                    path: "/orders/create",
-                    method: "POST",
-                    agent,
-                    headers: {
-                        Authorization:
-                            "Basic " +
-                            Buffer.from(
-                                `${env("BIZON_USERNAME")}:${env("BIZON_API_PASSWORD")}`
-                            ).toString("base64"),
-                        "Content-Type": "application/json",
-                        "Content-Length": Buffer.byteLength(data),
-                    },
-                },
-                (res) => {
-                    resolve({
-                        statusCode: res.statusCode,
-                        headers: res.headers,
-                    });
-                }
-            );
-
-            r.on("error", reject);
-            r.write(data);
-            r.end();
-        });
-
-        const redirectUrl = result.headers?.location;
-
-        if (!redirectUrl) {
-            throw new Error("No redirect URL from Bizon");
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        return NextResponse.json({ redirectUrl });
-    } catch (e: any) {
-        console.error("Bizon create-order error:", e);
-        return NextResponse.json(
-            { error: e.message || "Bizon order failed" },
-            { status: 500 }
-        );
+        const { amount, currency = "EUR" } = await req.json();
+        if (!Number.isFinite(amount) || amount < 1) {
+            return NextResponse.json({ error: "Invalid amount" }, { status: 422 });
+        }
+
+        const referenceId =
+            "TOPUP-" +
+            session.user.email +
+            "-" +
+            crypto.randomBytes(6).toString("hex");
+
+        const payload = {
+            referenceId,
+            paymentType: "DEPOSIT",
+            paymentMethod: "BASIC_CARD",
+            amount,
+            currency,
+            description: `Token top-up for ${session.user.email}`,
+
+            customer: {
+                referenceId: `USER_${session.user.email}`,
+                firstName: session.user.name ?? "User",
+                lastName: "ShapeAI",
+                email: session.user.email,
+                locale: "en",
+                ip: req.headers.get("x-forwarded-for") ?? "127.0.0.1",
+            },
+
+            successReturnUrl: `${SUCCESS_URL}?id={id}`,
+            declineReturnUrl: `${DECLINE_URL}?id={id}`,
+            webhookUrl: `${SITE_URL}/api/webhooks/transfermit`,
+            websiteUrl: SITE_URL,
+        };
+
+        const res = await fetch(`${TM_API_URL}/payments`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${TM_API_KEY}`,
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
+            body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+        const payment = data.result ?? data;
+
+        if (!res.ok || !payment?.redirectUrl) {
+            console.error("Transfermit error:", data);
+            return NextResponse.json(
+                { error: "Payment gateway error" },
+                { status: 500 }
+            );
+        }
+
+        return NextResponse.json({ redirectUrl: payment.redirectUrl });
+    } catch (e) {
+        console.error("Create order error:", e);
+        return NextResponse.json({ error: "Create order failed" }, { status: 500 });
     }
 }

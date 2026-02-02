@@ -125,7 +125,7 @@ function TopUpCard({
         setIsRedirecting(true);
 
         try {
-            // ✅ Save exactly what PaymentSuccessPage expects
+            // ✅ залишаємо — потрібно для success page
             const selectedPlan: SelectedPlan = {
                 type: plan.id,
                 name: plan.name,
@@ -134,35 +134,26 @@ function TopUpCard({
             };
             localStorage.setItem("selectedPlan", JSON.stringify(selectedPlan));
 
-            // ✅ Create Bizon order
             const res = await fetch("/api/bizon/create-order", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    // if you have real user data in session — pass it here instead of placeholders
-                    name: "Customer",
-                    email: "customer@example.com",
                     amount: amountNumber,
                     currency,
-                    description: `Top-up: ${plan.name}`,
                 }),
             });
 
-            const data = await res.json().catch(() => ({} as any));
+            // ✅ ЧИТАЄМО JSON РІВНО 1 РАЗ
+            const data = await res.json();
 
-            if (!res.ok) {
+            if (!res.ok || !data?.redirectUrl) {
                 console.error("Payment create-order failed:", data);
                 alert("Payment failed: " + (data?.error || `HTTP ${res.status}`));
                 return;
             }
 
-            if (data?.redirectUrl) {
-                window.location.href = data.redirectUrl;
-                return;
-            }
-
-            console.error("Payment error: no redirectUrl", data);
-            alert("Payment failed: " + (data?.error || "No redirect URL"));
+            // ✅ ЄДИНИЙ редірект
+            window.location.href = data.redirectUrl;
         } catch (err: any) {
             console.error("Payment error:", err);
             alert("Payment error: " + (err?.message || String(err)));
@@ -170,6 +161,7 @@ function TopUpCard({
             setIsRedirecting(false);
         }
     };
+
 
     return (
         <AnimatedCard>

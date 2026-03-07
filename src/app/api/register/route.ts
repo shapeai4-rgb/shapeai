@@ -8,7 +8,10 @@ import { prisma } from "@/lib/prisma";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, password, firstName, lastName } = body;
+    const { 
+      email, password, firstName, lastName,
+      phone, dateOfBirth, street, city, country, postCode
+    } = body;
 
     if (!email || !password || !firstName || !lastName) {
       return new NextResponse("Missing required fields", { status: 400 });
@@ -30,6 +33,12 @@ export async function POST(request: Request) {
         hashedPassword,
         firstName,
         lastName,
+        phone,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+        street,
+        city,
+        country,
+        postCode,
         // Мы не добавляем 'name', так как он будет заполняться
         // либо через Google, либо его можно будет составить из firstName + lastName позже
       },

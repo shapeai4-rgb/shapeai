@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react';
 import axios, { AxiosError } from 'axios';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { ALLOWED_COUNTRIES } from '@/lib/countries';
 
 // Определяем пропсы для компонента
 type AuthModalProps = {
@@ -29,6 +30,12 @@ export function AuthModal({ open, mode, onClose, onModeChange }: AuthModalProps)
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [street, setStreet] = useState('');
+  const [city, setCity] = useState('');
+  const [country, setCountry] = useState('');
+  const [postCode, setPostCode] = useState('');
   const [agree, setAgree] = useState(false);
   const [errors, setErrors] = useState<{ api?: string }>({});
   const [loading, setLoading] = useState(false);
@@ -41,14 +48,17 @@ export function AuthModal({ open, mode, onClose, onModeChange }: AuthModalProps)
     // --- Логика для РЕГИСТРАЦИИ ---
     if (mode === 'signup') {
       try {
-        await axios.post('/api/register', { email, password, firstName, lastName });
+        await axios.post('/api/register', {
+          email, password, firstName, lastName,
+          phone, dateOfBirth, street, city, country, postCode
+        });
         const result = await signIn('credentials', { email, password, redirect: false });
         if (result?.ok) {
           window.location.href = '/dashboard';
         } else {
           setErrors({ api: "Registration successful, but login failed." });
         }
-      // ★ Исправлен тип 'error' и добавлена проверка
+        // ★ Исправлен тип 'error' и добавлена проверка
       } catch (error) {
         if (error instanceof AxiosError && error.response) {
           setErrors({ api: error.response.data as string });
@@ -60,15 +70,15 @@ export function AuthModal({ open, mode, onClose, onModeChange }: AuthModalProps)
 
     // --- Логика для ВХОДА ---
     if (mode === 'login') {
-        const result = await signIn('credentials', { email, password, redirect: false });
-        if (result?.ok && !result.error) {
-          window.location.href = '/dashboard';
-        } else {
-          setErrors({ api: "Invalid email or password." });
-        }
+      const result = await signIn('credentials', { email, password, redirect: false });
+      if (result?.ok && !result.error) {
+        window.location.href = '/dashboard';
+      } else {
+        setErrors({ api: "Invalid email or password." });
       }
-      setLoading(false);
-    };
+    }
+    setLoading(false);
+  };
 
   if (!open) return null;
 
@@ -85,14 +95,25 @@ export function AuthModal({ open, mode, onClose, onModeChange }: AuthModalProps)
               <label className="font-medium text-neutral-slate">Last Name</label>
               <input value={lastName} onChange={(e) => setLastName(e.target.value)} required type="text" className="mt-1 w-full rounded-lg border border-neutral-lines px-3 py-2 outline-none ring-accent/50 focus:ring-2" />
             </div>
+            <div className="col-span-2">
+              <label className="font-medium text-neutral-slate">Date of Birth</label>
+              <input value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} required type="date" className="mt-1 w-full rounded-lg border border-neutral-lines px-3 py-2 outline-none ring-accent/50 focus:ring-2 bg-white" />
+            </div>
           </div>
         )}
-        
+
         <div>
           <label className="font-medium text-neutral-slate">Email</label>
           <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required placeholder="you@example.com" className="mt-1 w-full rounded-lg border border-neutral-lines px-3 py-2 outline-none ring-accent/50 focus:ring-2" />
         </div>
-        
+
+        {mode === 'signup' && (
+          <div>
+            <label className="font-medium text-neutral-slate">Phone Number</label>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" required placeholder="+1234567890" className="mt-1 w-full rounded-lg border border-neutral-lines px-3 py-2 outline-none ring-accent/50 focus:ring-2" />
+          </div>
+        )}
+
         <div>
           <label className="font-medium text-neutral-slate">Password</label>
           <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required placeholder="••••••••" className="mt-1 w-full rounded-lg border border-neutral-lines px-3 py-2 outline-none ring-accent/50 focus:ring-2" />
@@ -116,6 +137,34 @@ export function AuthModal({ open, mode, onClose, onModeChange }: AuthModalProps)
         )}
 
         {mode === 'signup' && (
+          <div className="grid gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="font-medium text-neutral-slate">Street Address</label>
+                <input value={street} onChange={(e) => setStreet(e.target.value)} required type="text" className="mt-1 w-full rounded-lg border border-neutral-lines px-3 py-2 outline-none ring-accent/50 focus:ring-2" />
+              </div>
+              <div>
+                <label className="font-medium text-neutral-slate">City</label>
+                <input value={city} onChange={(e) => setCity(e.target.value)} required type="text" className="mt-1 w-full rounded-lg border border-neutral-lines px-3 py-2 outline-none ring-accent/50 focus:ring-2" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="font-medium text-neutral-slate">Country</label>
+                <select value={country} onChange={(e) => setCountry(e.target.value)} required className="mt-1 w-full rounded-lg border border-neutral-lines px-3 py-2 outline-none ring-accent/50 focus:ring-2 bg-white">
+                  <option value="" disabled>Select Country</option>
+                  {ALLOWED_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="font-medium text-neutral-slate">Post Code</label>
+                <input value={postCode} onChange={(e) => setPostCode(e.target.value)} required type="text" className="mt-1 w-full rounded-lg border border-neutral-lines px-3 py-2 outline-none ring-accent/50 focus:ring-2" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {mode === 'signup' && (
           <div className="flex items-center gap-2">
             <input id="terms" type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} required className="h-4 w-4 rounded border-neutral-lines text-accent focus:ring-accent" />
             <label htmlFor="terms" className="text-xs text-neutral-slate"> I agree to the <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="underline hover:text-neutral-ink">Terms</a> and <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="underline hover:text-neutral-ink">Privacy Policy</a></label>
@@ -135,11 +184,11 @@ export function AuthModal({ open, mode, onClose, onModeChange }: AuthModalProps)
             <span>Continue with Google</span>
           </button>
         </div>
-        
+
         <div className="mt-2 text-center text-xs text-neutral-slate">
           {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}
-          <button 
-            type="button" 
+          <button
+            type="button"
             className="ml-1 font-semibold text-accent hover:underline"
             onClick={() => onModeChange?.(mode === 'login' ? 'signup' : 'login')}
           >

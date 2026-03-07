@@ -15,6 +15,12 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   hashedPassword  String?
+  phone         String?
+  dateOfBirth   DateTime?
+  street        String?
+  city          String?
+  country       String?
+  postCode      String?
   tokenBalance    Int       @default(10)
   image         String?
   

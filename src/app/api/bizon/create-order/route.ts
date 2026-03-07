@@ -1,79 +1,85 @@
 import { NextResponse } from "next/server";
-import https from "https";
-import fs from "fs";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import crypto from "crypto";
 
-const BIZON_CERT_PATH = process.cwd() + "/certs/shapeai.p12";
+export const runtime = "nodejs";
+
+const TM_API_URL = process.env.TRANSFERMIT_API_URL!;
+const TM_API_KEY = process.env.TRANSFERMIT_API_KEY!;
+const SITE_URL = process.env.TRANSFERMIT_WEBSITE_URL!;
+const SUCCESS_URL = process.env.TRANSFERMIT_SUCCESS_URL!;
+const DECLINE_URL = process.env.TRANSFERMIT_DECLINE_URL!;
+
+function getClientIp(req: Request) {
+    const xff = req.headers.get("x-forwarded-for");
+    const ip = xff?.split(",")[0]?.trim();
+    return ip && /^\d+\.\d+\.\d+\.\d+$/.test(ip) ? ip : "8.8.8.8";
+}
 
 export async function POST(req: Request) {
     try {
-        const body = await req.json();
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.id || !session.user.email) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
 
-        const data = JSON.stringify({
-            project: process.env.BIZON_PROJECT,
-            amount: body.amount,
-            currency: body.currency || "USD",
-            description: body.description || "Top-up payment",
-            client: {
-                name: body.name || "Customer",
-                email: body.email || "client@example.com",
-                phone: body.phone || "+380000000000",
-            },
-            options: {
-                return_url: process.env.BIZON_RETURN_URL,
-                fail_url: process.env.BIZON_FAIL_URL,
-                auto_charge: 1,
-                form: "redirect",
-                language: "en",
-            },
-        });
+        const { amount, currency = "EUR" } = await req.json();
+        if (!Number.isFinite(amount) || amount < 1) {
+            return NextResponse.json({ error: "Invalid amount" }, { status: 422 });
+        }
 
-        const options: https.RequestOptions = {
-            hostname: "sandboxapi.bizon.one",
-            path: "/orders/create",
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization:
-                    "Basic " +
-                    Buffer.from(
-                        `${process.env.BIZON_USERNAME}:${process.env.BIZON_PASSWORD}`
-                    ).toString("base64"),
+        const topupId = crypto.randomUUID();
+        const customRef = crypto.randomBytes(6).toString("hex");
+        const referenceId = `topup=${topupId};ref=${customRef}`;
+
+        const payload = {
+            referenceId,
+            paymentType: "DEPOSIT",
+            paymentMethod: "BASIC_CARD",
+            amount: Number(amount),
+            currency,
+
+            description: "Account top-up",
+
+            customer: {
+                referenceId: `USER_${session.user.id}`,
+                firstName: session.user.name ?? "User",
+                lastName: "Client",
+                email: session.user.email,
+                locale: "en",
+                ip: getClientIp(req),
             },
-            pfx: fs.readFileSync(BIZON_CERT_PATH),
-            passphrase: process.env.BIZON_CERT_PASSWORD,
-            rejectUnauthorized: false, // тільки для sandbox
+
+            successReturnUrl: `${SUCCESS_URL}?id={id}&ref={referenceId}&state={state}`,
+            declineReturnUrl: `${DECLINE_URL}?id={id}&ref={referenceId}&state={state}`,
+            webhookUrl: `${SITE_URL}/api/transfermit/webhook`,
+            websiteUrl: SITE_URL.replace(/\/+$/, ""),
         };
 
-        console.log("📦 Sending payload to Bizon:", data);
-
-        const redirectUrl = await new Promise<string>((resolve, reject) => {
-            const reqHttps = https.request(options, (res) => {
-                const location = res.headers["location"] as string | undefined;
-                console.log("📬 Bizon response:", res.statusCode, res.headers);
-
-                if (location) {
-                    resolve(location);
-                } else {
-                    let responseBody = "";
-                    res.on("data", (chunk) => (responseBody += chunk));
-                    res.on("end", () => reject(new Error(responseBody)));
-                }
-            });
-
-            reqHttps.on("error", (e) => reject(e));
-            reqHttps.write(data);
-            reqHttps.end();
+        const res = await fetch(`${TM_API_URL}/payments`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${TM_API_KEY}`,
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
+            body: JSON.stringify(payload),
         });
 
-        console.log("✅ Redirect URL:", redirectUrl);
-        return NextResponse.json({ redirectUrl });
-    } catch (err) {
-        console.error("💥 Bizon order create error:", err);
+        const data = await res.json();
+        const payment = data?.result ?? data;
 
-        // Без any, перевіряємо тип через instanceof
-        const message =
-            err instanceof Error ? err.message : "Unknown error creating order";
+        if (!res.ok || !payment?.redirectUrl) {
+            return NextResponse.json({ error: "Gateway error" }, { status: 502 });
+        }
 
-        return NextResponse.json({ error: message }, { status: 500 });
+        return NextResponse.json({
+            redirectUrl: payment.redirectUrl,
+            paymentId: payment.id,
+            referenceId,
+        });
+    } catch {
+        return NextResponse.json({ error: "Create order failed" }, { status: 500 });
     }
 }

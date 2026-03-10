@@ -23,7 +23,7 @@ export default function ContactPage() {
           <p><strong>Company number:</strong> 16107292</p>
           <p><strong>Address:</strong> 12 Skinner Lane, Leeds, England, LS7 1DL</p>
           <p><strong>Email:</strong> info@shapeai.co.uk</p>
-          <p><strong>Phone:</strong> +44 7418 638914</p>
+          <p><strong>Phone:</strong> +44 7463 585216</p>
           <p>
             We aim to respond to all inquiries within 2 business days.
           </p>

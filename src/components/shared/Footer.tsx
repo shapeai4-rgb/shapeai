@@ -9,7 +9,7 @@ export function Footer() {
     companyNumber: "16107292",
     address: "12 Skinner Lane, Leeds, England, LS7 1DL",
     email: "info@shapeai.co.uk",
-    phone: "+44 7418 638914"
+    phone: "+44 7463 585216"
   };
 
   // Legal ссылки

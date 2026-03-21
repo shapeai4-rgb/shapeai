@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from "@/lib/auth";
 import { prisma } from '@/lib/prisma';
 import { TOP_UP_PRICES, TOKENS_FOR_PLAN } from '@/lib/constants';
+import { sendTopUpInvoiceEmail } from '@/lib/invoice-delivery';
 
 const TOKENS_PER_EURO = 10;
 const FX_EUR_GBP = 0.85;
@@ -69,7 +70,7 @@ export async function GET(request: Request) {
           ? `Top-up: ${planId.charAt(0).toUpperCase() + planId.slice(1)} Plan`
           : `Top-up: Custom Amount (${currency.toUpperCase()})`;
 
-        await prisma.transaction.create({
+        const transaction = await prisma.transaction.create({
           data: {
             userId,
             action: 'topup',
@@ -79,6 +80,21 @@ export async function GET(request: Request) {
             description,
           },
         });
+
+        if (session.user.email) {
+          await sendTopUpInvoiceEmail({
+            amount: amountInEur,
+            createdAt: transaction.createdAt,
+            currency: currency.toUpperCase(),
+            customerEmail: session.user.email,
+            customerName: session.user.name ?? session.user.email ?? 'ShapeAI customer',
+            description,
+            tokens: tokensToAdd,
+            transactionId: transaction.id,
+          });
+        } else {
+          console.warn('[FREE_TOPUP] Invoice email skipped: session user email is missing.');
+        }
 
         console.log(`Successfully credited ${tokensToAdd} tokens to user ${userId}.`);
       } catch (dbError) {

@@ -181,7 +181,7 @@ export function GeneratorPanel({ onGenerate, loading, onAuth }: GeneratorPanelPr
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm font-medium text-accent">Days to generate</div>
-            <div className="mt-0.5 text-xs text-accent/80">1-day free preview. Full plan available in PDF.</div>
+            <div className="mt-0.5 text-xs text-accent/80">Choose the number of days for your generated plan and PDF.</div>
           </div>
           <div className="text-2xl font-semibold text-accent tabular-nums">{formData.days}</div>
         </div>

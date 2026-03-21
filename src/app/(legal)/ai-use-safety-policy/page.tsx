@@ -2,7 +2,7 @@ import React from 'react';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'AI Use & Safety Policy | WeightLoss.AI',
+  title: 'AI Use & Safety Policy | ShapeAI',
 };
 
 export default function AiUseSafetyPolicyPage() {
@@ -21,18 +21,18 @@ export default function AiUseSafetyPolicyPage() {
 
       <h2>What AI can and cannot do</h2>
       <p><strong>Can:</strong> organise meals by macros, surface substitutions, generate shopping lists, explain recipes.</p>
-      <p><strong>Cannot:</strong> diagnose conditions, prescribe medication, or guarantee weight‑loss outcomes. Outputs may be wrong or not suitable for your health context.</p>
+      <p><strong>Cannot:</strong> diagnose conditions, prescribe medication, or guarantee weight-loss outcomes. Outputs may be wrong or not suitable for your health context.</p>
 
       <h2>Your responsibilities</h2>
       <ul>
         <li>Verify ingredients for allergens/intolerances.</li>
-        <li>Consult a qualified professional for medical questions, GLP‑1 usage, or significant dietary changes.</li>
+        <li>Consult a qualified professional for medical questions, GLP-1 usage, or significant dietary changes.</li>
         <li>Do not use the service for emergencies.</li>
       </ul>
 
       <h2>Model & provider changes</h2>
       <p>
-        We may change models/providers to improve safety and quality; we will maintain 
+        We may change models/providers to improve safety and quality; we will maintain
         or improve protections.
       </p>
     </>

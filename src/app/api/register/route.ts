@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { prisma } from "@/lib/prisma";
+import { sendWelcomeEmail } from "@/lib/registration-confirmation";
 
 // Эта функция будет обрабатывать POST-запросы на /api/register
 export async function POST(request: Request) {
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
         hashedPassword,
         firstName,
         lastName,
+        name: `${firstName} ${lastName}`.trim(),
         phone,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
         street,
@@ -42,6 +44,14 @@ export async function POST(request: Request) {
         // Мы не добавляем 'name', так как он будет заполняться
         // либо через Google, либо его можно будет составить из firstName + lastName позже
       },
+    });
+
+    await sendWelcomeEmail({
+      email: user.email ?? email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      name: user.name,
+      tokenBalance: user.tokenBalance,
     });
 
     return NextResponse.json(user);

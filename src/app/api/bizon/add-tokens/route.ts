@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { calculateTokens, PlanType, Currency } from "@/lib/tokenCalculator";
+import { sendTopUpInvoiceEmail } from "@/lib/invoice-delivery";
 
 export async function POST(req: Request) {
     try {
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
             },
         });
 
-        await prisma.transaction.create({
+        const transaction = await prisma.transaction.create({
             data: {
                 userId: user.id,
                 action: "topup",
@@ -58,12 +59,27 @@ export async function POST(req: Request) {
             },
         });
 
+        const customerEmail = user.email ?? session.user.email;
+
+        await sendTopUpInvoiceEmail({
+            amount,
+            createdAt: transaction.createdAt,
+            currency,
+            customerEmail,
+            customerName:
+                user.name ??
+                ([user.firstName, user.lastName].filter(Boolean).join(" ").trim() || customerEmail),
+            description: transaction.description,
+            tokens,
+            transactionId: transaction.id,
+        });
+
         return NextResponse.json({
             success: true,
             tokensAdded: tokens,
             newBalance: updatedUser.tokenBalance,
         });
-    } catch (e: any) {
+    } catch (e: unknown) {
         console.error("add-tokens error:", e);
         return NextResponse.json(
             { error: "Failed to add tokens" },

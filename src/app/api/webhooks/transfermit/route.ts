@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { calculateTokens } from "@/lib/tokenCalculator";
+import { sendTopUpInvoiceEmail } from "@/lib/invoice-delivery";
 
 export const runtime = "nodejs";
 
@@ -44,14 +45,15 @@ export async function POST(req: Request) {
 
     const tokens = calculateTokens(amount, "custom");
 
-    await prisma.$transaction([
-        prisma.user.update({
+    const transaction = await prisma.$transaction(async (tx) => {
+        await tx.user.update({
             where: { id: user.id },
             data: {
                 tokenBalance: { increment: tokens },
             },
-        }),
-        prisma.transaction.create({
+        });
+
+        return tx.transaction.create({
             data: {
                 userId: user.id,
                 action: "topup",
@@ -60,8 +62,23 @@ export async function POST(req: Request) {
                 tokenAmount: tokens,
                 description: "Transfermit top-up",
             },
-        }),
-    ]);
+        });
+    });
+
+    const customerEmail = user.email ?? email;
+
+    await sendTopUpInvoiceEmail({
+        amount,
+        createdAt: transaction.createdAt,
+        currency,
+        customerEmail,
+        customerName:
+            user.name ??
+            ([user.firstName, user.lastName].filter(Boolean).join(" ").trim() || customerEmail),
+        description: transaction.description,
+        tokens,
+        transactionId: transaction.id,
+    });
 
     return NextResponse.json({ ok: true });
 }

@@ -69,6 +69,14 @@ function clampTo2Decimals(n: number) {
     return Math.round(n * 100) / 100;
 }
 
+function getErrorMessage(error: unknown) {
+    if (error instanceof Error) {
+        return error.message;
+    }
+
+    return String(error);
+}
+
 // --- Card ---
 function TopUpCard({
                        plan,
@@ -154,9 +162,10 @@ function TopUpCard({
 
             // ✅ ЄДИНИЙ редірект
             window.location.href = data.redirectUrl;
-        } catch (err: any) {
-            console.error("Payment error:", err);
-            alert("Payment error: " + (err?.message || String(err)));
+        } catch (error: unknown) {
+            const message = getErrorMessage(error);
+            console.error("Payment error:", error);
+            alert("Payment error: " + message);
         } finally {
             setIsRedirecting(false);
         }

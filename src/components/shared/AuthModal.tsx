@@ -40,8 +40,29 @@ export function AuthModal({ open, mode, onClose, onModeChange }: AuthModalProps)
   const [errors, setErrors] = useState<{ api?: string }>({});
   const [loading, setLoading] = useState(false);
 
+  const isLoginFormComplete =
+    email.trim() !== '' &&
+    password.trim() !== '';
+
+  const isSignupFormComplete =
+    firstName.trim() !== '' &&
+    lastName.trim() !== '' &&
+    dateOfBirth.trim() !== '' &&
+    email.trim() !== '' &&
+    phone.trim() !== '' &&
+    password.trim() !== '' &&
+    street.trim() !== '' &&
+    city.trim() !== '' &&
+    country.trim() !== '' &&
+    postCode.trim() !== '' &&
+    agree;
+
+  const canSubmit = mode === 'signup' ? isSignupFormComplete : isLoginFormComplete;
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canSubmit) return;
+
     setLoading(true);
     setErrors({});
 
@@ -172,7 +193,7 @@ export function AuthModal({ open, mode, onClose, onModeChange }: AuthModalProps)
         )}
 
         <div className="mt-2 flex flex-col gap-3">
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading || !canSubmit}>
             {loading ? 'Processing...' : 'Continue'}
           </Button>
           <div className="relative flex items-center justify-center">

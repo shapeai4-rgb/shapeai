@@ -17,7 +17,6 @@ type RegistrationConfirmationEmailProps = {
   email: string;
   tokenBalance: number;
   dashboardUrl: string;
-  generatorUrl: string;
   supportEmail: string;
 };
 
@@ -96,13 +95,12 @@ export function RegistrationConfirmationEmail({
   email,
   tokenBalance,
   dashboardUrl,
-  generatorUrl,
   supportEmail,
 }: RegistrationConfirmationEmailProps) {
   return (
     <Html>
       <Head />
-      <Preview>Your ShapeAI account is ready.</Preview>
+      <Preview>Your ShapeAI account is now active.</Preview>
       <Body style={shell}>
         <Container style={card}>
           <Section style={hero}>
@@ -128,8 +126,8 @@ export function RegistrationConfirmationEmail({
                 maxWidth: "520px",
               }}
             >
-              Registration completed successfully. You can now create meal plans,
-              manage your tokens, and download branded ShapeAI PDFs.
+              Registration completed successfully. You can now sign in and access
+              your dashboard.
             </Text>
           </Section>
 
@@ -161,16 +159,11 @@ export function RegistrationConfirmationEmail({
               }}
             >
               <Text style={{ color: colors.ink, fontSize: "14px", fontWeight: 800, margin: "0 0 14px" }}>
-                What happens next
-              </Text>
-              <Text style={{ color: colors.slate, fontSize: "15px", lineHeight: "1.7", margin: "0 0 12px" }}>
-                1. Open your dashboard to review your account and token balance.
-              </Text>
-              <Text style={{ color: colors.slate, fontSize: "15px", lineHeight: "1.7", margin: "0 0 12px" }}>
-                2. Generate your first personalised meal plan from the main generator.
+                Account details
               </Text>
               <Text style={{ color: colors.slate, fontSize: "15px", lineHeight: "1.7", margin: 0 }}>
-                3. Keep the attached registration PDF for your records.
+                This is a transactional confirmation that your account has been created.
+                Use the button below to open your dashboard.
               </Text>
             </div>
 
@@ -188,20 +181,6 @@ export function RegistrationConfirmationEmail({
                 }}
               >
                 Open dashboard
-              </Button>
-              <Button
-                href={generatorUrl}
-                style={{
-                  backgroundColor: "#ECFDF5",
-                  border: `1px solid #A7F3D0`,
-                  borderRadius: "12px",
-                  color: colors.accentDark,
-                  fontWeight: 800,
-                  padding: "14px 22px",
-                  textDecoration: "none",
-                }}
-              >
-                Create first plan
               </Button>
             </div>
 

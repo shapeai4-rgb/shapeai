@@ -34,6 +34,7 @@ function getButtonClassName(className: string | undefined, locked: boolean | und
     {
       'bg-accent text-white': !locked,
       'bg-neutral-lines text-neutral-slate cursor-not-allowed': locked,
+      'disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-accent disabled:hover:text-white': !locked,
     },
     className
   );
@@ -72,13 +73,17 @@ export function Button(props: ButtonProps) {
     );
   }
 
-  const { className, children, locked, type = 'button', ...rest } = props;
+  const { className, children, locked, disabled, type = 'button', ...rest } = props;
+  const isInactive = locked || Boolean(disabled);
+  const buttonHoverAnimation = { scale: isInactive ? 1 : 1.03, y: isInactive ? 0 : -2 };
+  const buttonTapAnimation = { scale: isInactive ? 1 : 0.98 };
 
   return (
     <motion.button
       type={type}
-      whileHover={hoverAnimation}
-      whileTap={tapAnimation}
+      disabled={disabled}
+      whileHover={buttonHoverAnimation}
+      whileTap={buttonTapAnimation}
       transition={transition}
       className={getButtonClassName(className, locked)}
       {...rest}

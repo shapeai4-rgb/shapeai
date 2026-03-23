@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
+import { usePaymentMode } from "@/lib/use-payment-mode";
 
 // --- Components ---
 import { Button } from "@/components/ui/Button";
@@ -82,10 +83,12 @@ function TopUpCard({
                        plan,
                        onSelectAuth,
                        isLoggedIn,
+                       withoutPayment,
                    }: {
     plan: TopUpPlan;
     onSelectAuth: () => void;
     isLoggedIn: boolean;
+    withoutPayment: boolean;
 }) {
     const [amount, setAmount] = useState<string>("");
     const [isRedirecting, setIsRedirecting] = useState(false);
@@ -148,6 +151,8 @@ function TopUpCard({
                 body: JSON.stringify({
                     amount: amountNumber,
                     currency,
+                    planName: plan.name,
+                    planType: plan.id,
                 }),
             });
 
@@ -220,7 +225,11 @@ function TopUpCard({
                 )}
 
                 <div className="mt-4 text-xs text-neutral-slate">
-                    {isLoggedIn ? "Proceed to checkout" : "Sign in to top-up"}
+                    {isLoggedIn
+                        ? withoutPayment
+                            ? "Test mode: payment is bypassed and tokens are credited immediately."
+                            : "Proceed to checkout"
+                        : "Sign in to top-up"}
                 </div>
 
                 <Button
@@ -231,9 +240,13 @@ function TopUpCard({
                     {isRedirecting
                         ? "Redirecting..."
                         : isLoggedIn
-                            ? plan.custom
-                                ? "Continue to checkout"
-                                : `Buy ${plan.tokens} tokens`
+                            ? withoutPayment
+                                ? plan.custom
+                                    ? "Credit tokens now"
+                                    : `Credit ${plan.tokens} tokens now`
+                                : plan.custom
+                                    ? "Continue to checkout"
+                                    : `Buy ${plan.tokens} tokens`
                             : "Sign up to continue"}
                 </Button>
             </article>
@@ -246,6 +259,7 @@ export default function TopUpPage() {
     const { status } = useSession();
     const isLoggedIn = status === "authenticated";
     const [authMode, setAuthMode] = useState<"login" | "signup" | null>(null);
+    const { isLoading: isPaymentModeLoading, withoutPayment } = usePaymentMode();
 
     return (
         <>
@@ -256,8 +270,15 @@ export default function TopUpPage() {
                             Top-up tokens
                         </h1>
                         <p className="mt-4 max-w-2xl mx-auto text-neutral-slate md:text-lg">
-                            Choose a pack or enter a custom amount. Then proceed to checkout to complete your payment securely.
+                            {withoutPayment
+                                ? "TEST MODE: choose a pack or enter a custom amount. Payment is bypassed, tokens are credited immediately, and the PDF invoice is emailed after crediting."
+                                : "Choose a pack or enter a custom amount. Then proceed to checkout to complete your payment securely."}
                         </p>
+                        {!isPaymentModeLoading && withoutPayment && (
+                            <p className="mt-3 inline-flex rounded-full border border-accent/25 bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+                                Payment gateway bypass active
+                            </p>
+                        )}
                     </motion.div>
 
                     <motion.div
@@ -270,6 +291,7 @@ export default function TopUpPage() {
                                 plan={p}
                                 onSelectAuth={() => setAuthMode("signup")}
                                 isLoggedIn={isLoggedIn}
+                                withoutPayment={withoutPayment}
                             />
                         ))}
                     </motion.div>

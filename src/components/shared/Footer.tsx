@@ -145,15 +145,8 @@ export function Footer() {
                 className="h-6 w-auto opacity-60"
               />
               <Image 
-                src="/American_Express_logo.svg" 
-                alt="American Express"
-                width={40}
-                height={24}
-                className="h-6 w-auto opacity-60"
-              />
-              <Image 
-                src="/Maestro_Logo.svg" 
-                alt="Maestro"
+                src="/pci-dss-logo.svg" 
+                alt="PCI DSS"
                 width={40}
                 height={24}
                 className="h-6 w-auto opacity-60"

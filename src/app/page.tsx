@@ -15,6 +15,7 @@ import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { GeneratorPanel } from "@/components/shared/GeneratorPanel";
 import { ContactForm } from "@/components/shared/ContactForm";
 import { type GeneratorFormData } from "@/types";
+import { usePaymentMode } from "@/lib/use-payment-mode";
 
 type Currency = "EUR" | "GBP" | "USD";
 type TopUpPlan = {
@@ -146,7 +147,7 @@ function normalizeAmount(input: string) {
   return input.replace(",", ".");
 }
 
-function TopUpCard({ plan, onSelect, isLoggedIn }: { plan: TopUpPlan; onSelect: () => void; isLoggedIn: boolean }) {
+function TopUpCard({ plan, onSelect, isLoggedIn, withoutPayment }: { plan: TopUpPlan; onSelect: () => void; isLoggedIn: boolean; withoutPayment: boolean }) {
   const [amount, setAmount] = useState<string>("");
   const [isRedirecting, setIsRedirecting] = useState(false);
   const currency = useAppStore((state) => state.currency);
@@ -183,11 +184,10 @@ function TopUpCard({ plan, onSelect, isLoggedIn }: { plan: TopUpPlan; onSelect: 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: "User Name",
-          email: "user@example.com",
           amount: Number(priceInSelected!.toFixed(2)),
           currency,
-          description: `Top-up for ${plan.name}`,
+          planName: plan.name,
+          planType: plan.id,
         }),
       });
 
@@ -232,9 +232,21 @@ function TopUpCard({ plan, onSelect, isLoggedIn }: { plan: TopUpPlan; onSelect: 
           <div className="mt-2 text-2xl font-headings font-semibold">{formatCurrency(currency, priceInSelected ?? 0)}</div>
         )}
         {plan.tokens && <div className="mt-1 text-xs text-neutral-slate">~ {plan.tokens.toLocaleString()} tokens</div>}
-        <div className="mt-4 text-xs text-neutral-slate">{isLoggedIn ? "Proceed to checkout" : "Sign in to top up"}</div>
+        <div className="mt-4 text-xs text-neutral-slate">
+          {isLoggedIn
+            ? withoutPayment
+              ? "Test mode: payment is bypassed and tokens are credited immediately."
+              : "Proceed to checkout"
+            : "Sign in to top up"}
+        </div>
         <Button onClick={handleCheckout} locked={plan.custom && !valid} disabled={isRedirecting} className="w-full mt-2 text-sm py-2">
-          {isRedirecting ? "Redirecting..." : isLoggedIn ? `Top-up ${formatCurrency(currency, priceInSelected ?? 0)}` : "Sign up to top up"}
+          {isRedirecting
+            ? "Redirecting..."
+            : isLoggedIn
+              ? withoutPayment
+                ? `Credit ${formatCurrency(currency, priceInSelected ?? 0)} now`
+                : `Top-up ${formatCurrency(currency, priceInSelected ?? 0)}`
+              : "Sign up to top up"}
         </Button>
       </article>
     </AnimatedCard>
@@ -271,6 +283,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 export default function HomePage() {
   const { status } = useSession();
   const isLoggedIn = status === "authenticated";
+  const { isLoading: isPaymentModeLoading, withoutPayment } = usePaymentMode();
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<Recipe[] | null>(MOCK_RECIPES);
   const [authMode, setAuthMode] = useState<"login" | "signup" | null>(null);
@@ -375,11 +388,20 @@ export default function HomePage() {
         <StaggeredFadeIn>
           <motion.div variants={itemVariants} className="rounded-3xl border border-neutral-lines bg-white p-6 md:p-8 shadow-soft">
             <h2 className="text-xl md:text-2xl font-headings font-semibold">Top-up tokens</h2>
-            <p className="mt-1 text-sm text-neutral-slate">Choose a pack or enter a custom amount. Sign-in required to complete top-up.</p>
+            <p className="mt-1 text-sm text-neutral-slate">
+              {withoutPayment
+                ? "TEST MODE: payment is bypassed, tokens are credited immediately, and the PDF invoice is emailed after crediting."
+                : "Choose a pack or enter a custom amount. Sign-in required to complete top-up."}
+            </p>
+            {!isPaymentModeLoading && withoutPayment && (
+              <p className="mt-3 inline-flex rounded-full border border-accent/25 bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+                Payment gateway bypass active
+              </p>
+            )}
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {TOPUP_PLANS.map((p) => (
                 <motion.div variants={itemVariants} key={p.id}>
-                  <TopUpCard plan={p} onSelect={() => setAuthMode("signup")} isLoggedIn={isLoggedIn} />
+                  <TopUpCard plan={p} onSelect={() => setAuthMode("signup")} isLoggedIn={isLoggedIn} withoutPayment={withoutPayment} />
                 </motion.div>
               ))}
             </div>

@@ -46,12 +46,17 @@ export async function POST(request: Request) {
       },
     });
 
-    await sendWelcomeEmail({
+    const delivery = await sendWelcomeEmail({
       email: user.email ?? email,
       firstName: user.firstName,
       lastName: user.lastName,
       name: user.name,
       tokenBalance: user.tokenBalance,
+    });
+
+    console.info("[REGISTER] Welcome email delivery:", {
+      delivery,
+      userId: user.id,
     });
 
     return NextResponse.json(user);

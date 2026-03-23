@@ -1,11 +1,10 @@
 export type Currency = "EUR" | "GBP" | "USD";
 export type PlanType = "lite" | "standard" | "pro" | "custom";
 
-const BONUS_MAP: Record<PlanType, number> = {
-    lite: 0,
-    standard: 0.10,
-    pro: 0.20,
-    custom: 0,
+const FIXED_PLAN_TOKENS: Record<Exclude<PlanType, "custom">, number> = {
+    lite: 90,
+    standard: 210,
+    pro: 600,
 };
 
 export function calculateTokens(amount: number, planType: PlanType): number {
@@ -13,8 +12,9 @@ export function calculateTokens(amount: number, planType: PlanType): number {
         throw new Error("Invalid amount");
     }
 
-    const baseTokens = amount * 10;
-    const bonus = baseTokens * (BONUS_MAP[planType] ?? 0);
+    if (planType !== "custom") {
+        return FIXED_PLAN_TOKENS[planType];
+    }
 
-    return Math.floor(baseTokens + bonus);
+    return Math.floor(amount * 10);
 }

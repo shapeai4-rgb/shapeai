@@ -1,6 +1,7 @@
 import { render } from "@react-email/render";
 import { Resend } from "resend";
 import { RegistrationConfirmationEmail } from "@/components/emails/RegistrationConfirmationEmail";
+import { deliverySkipped, type EmailDeliveryResult } from "@/lib/email-delivery-result";
 
 const DEFAULT_APP_URL = "https://shapeai.co.uk";
 const SUPPORT_EMAIL = "info@shapeai.co.uk";
@@ -65,10 +66,10 @@ function buildWelcomeText(user: RegistrationConfirmationUser, createdAt: Date) {
 export async function sendWelcomeEmail(
   user: RegistrationConfirmationUser,
   createdAt = new Date()
-) {
+) : Promise<EmailDeliveryResult> {
   if (!process.env.RESEND_API_KEY) {
     console.warn("Welcome email skipped: RESEND_API_KEY is not configured.");
-    return false;
+    return deliverySkipped("Welcome email skipped: RESEND_API_KEY is not configured.");
   }
 
   const appUrl = getAppUrl();
@@ -88,7 +89,7 @@ export async function sendWelcomeEmail(
     );
 
     const resend = new Resend(process.env.RESEND_API_KEY);
-    const { error } = await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: `ShapeAI Accounts <${getFromAddress()}>`,
       html,
       replyTo: SUPPORT_EMAIL,
@@ -99,12 +100,21 @@ export async function sendWelcomeEmail(
 
     if (error) {
       console.error("Welcome email failed:", error);
-      return false;
+      return {
+        sent: false,
+        error: typeof error.message === "string" ? error.message : "Welcome email failed.",
+      };
     }
 
-    return true;
+    return {
+      sent: true,
+      messageId: data?.id,
+    };
   } catch (error) {
     console.error("Welcome email failed:", error);
-    return false;
+    return {
+      sent: false,
+      error: error instanceof Error ? error.message : "Welcome email failed.",
+    };
   }
 }

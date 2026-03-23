@@ -8,26 +8,26 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  firstName     String?
-  lastName      String?
-  email         String?   @unique
-  emailVerified DateTime?
-  hashedPassword  String?
-  phone         String?
-  dateOfBirth   DateTime?
-  street        String?
-  city          String?
-  country       String?
-  postCode      String?
-  tokenBalance    Int       @default(10)
-  image         String?
-  
-  accounts      Account[]
-  sessions      Session[]
-  mealPlans     MealPlan[]
-  transactions  Transaction[]
+  id             String    @id @default(cuid())
+  name           String?
+  firstName      String?
+  lastName       String?
+  email          String?   @unique
+  emailVerified  DateTime?
+  hashedPassword String?
+  phone          String?
+  dateOfBirth    DateTime?
+  street         String?
+  city           String?
+  country        String?
+  postCode       String?
+  tokenBalance   Int       @default(10)
+  image          String?
+
+  accounts     Account[]
+  sessions     Session[]
+  mealPlans    MealPlan[]
+  transactions Transaction[]
 }
 
 model Account {
@@ -65,26 +65,28 @@ model VerificationToken {
 }
 
 model MealPlan {
-  id        String   @id @default(cuid())
-  content   Json
-  createdAt DateTime @default(now())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title       String
-  days        Int
-  kcalTarget  Int
-  status      String 
-  dietTags    String[]
+  id         String   @id @default(cuid())
+  content    Json
+  createdAt  DateTime @default(now())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  days       Int
+  kcalTarget Int
+  status     String
+  dietTags   String[]
 }
 
 model Transaction {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  action      String   // "topup" | "spend"
-  tokenAmount Int      // Количество токенов (положительное для пополнения, отрицательное для трат)
-  amount      Float?   // Сумма в валюте (только для пополнений)
-  currency    String?  // "EUR" | "GBP" | etc.
-  description String?  // Описание транзакции
+  action      String
+  tokenAmount Int
+  amount      Float?
+  currency    String?
+  description String?
+  source      String?
+  externalRef String?  @unique
   createdAt   DateTime @default(now())
 }

@@ -2,6 +2,7 @@ import { render } from "@react-email/render";
 import { Resend } from "resend";
 import { deriveInvoiceNumber, renderInvoicePdfBuffer, type InvoicePdfData } from "../../InvoicePdf";
 import { TopUpInvoiceEmail } from "@/components/emails/TopUpInvoiceEmail";
+import { deliverySkipped, type EmailDeliveryResult } from "@/lib/email-delivery-result";
 
 const SUPPORT_EMAIL = "info@shapeai.co.uk";
 
@@ -22,15 +23,15 @@ function buildInvoiceText(payload: TopUpInvoicePayload, invoiceNumber: string) {
   ].join("\n");
 }
 
-export async function sendTopUpInvoiceEmail(payload: TopUpInvoicePayload) {
+export async function sendTopUpInvoiceEmail(payload: TopUpInvoicePayload): Promise<EmailDeliveryResult> {
   if (!payload.customerEmail) {
     console.warn("Invoice email skipped: customer email is missing.");
-    return false;
+    return deliverySkipped("Invoice email skipped: customer email is missing.");
   }
 
   if (!process.env.RESEND_API_KEY) {
     console.warn("Invoice email skipped: RESEND_API_KEY is not configured.");
-    return false;
+    return deliverySkipped("Invoice email skipped: RESEND_API_KEY is not configured.");
   }
 
   try {
@@ -50,7 +51,7 @@ export async function sendTopUpInvoiceEmail(payload: TopUpInvoicePayload) {
     ]);
 
     const resend = new Resend(process.env.RESEND_API_KEY);
-    const { error } = await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       attachments: [
         {
           content: pdfBuffer,
@@ -68,12 +69,21 @@ export async function sendTopUpInvoiceEmail(payload: TopUpInvoicePayload) {
 
     if (error) {
       console.error("Invoice email failed:", error);
-      return false;
+      return {
+        sent: false,
+        error: typeof error.message === "string" ? error.message : "Invoice email failed.",
+      };
     }
 
-    return true;
+    return {
+      sent: true,
+      messageId: data?.id,
+    };
   } catch (error) {
     console.error("Invoice email failed:", error);
-    return false;
+    return {
+      sent: false,
+      error: error instanceof Error ? error.message : "Invoice email failed.",
+    };
   }
 }

@@ -1,84 +1,65 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
-import { calculateTokens } from "@/lib/tokenCalculator";
-import { sendTopUpInvoiceEmail } from "@/lib/invoice-delivery";
+import { NextResponse } from "next/server";
+import { parseTopUpReference } from "@/lib/top-up-reference";
+import { completeTopUp } from "@/lib/top-up";
+import type { Currency } from "@/lib/tokenCalculator";
 
 export const runtime = "nodejs";
 
 function verifySignature(body: string, signature: string) {
-    const secret = process.env.TRANSFERMIT_WEBHOOK_SECRET!;
-    const hash = crypto
-        .createHmac("sha256", secret)
-        .update(body)
-        .digest("hex");
-    return hash === signature;
+  const secret = process.env.TRANSFERMIT_WEBHOOK_SECRET!;
+  const hash = crypto.createHmac("sha256", secret).update(body).digest("hex");
+  return hash === signature;
 }
 
 export async function POST(req: Request) {
-    const rawBody = await req.text();
-    const signature = req.headers.get("x-transfermit-signature") ?? "";
+  const rawBody = await req.text();
+  const signature = req.headers.get("x-transfermit-signature") ?? "";
 
-    if (!verifySignature(rawBody, signature)) {
-        return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-    }
+  if (!verifySignature(rawBody, signature)) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  }
 
-    const event = JSON.parse(rawBody);
-    const payment = event?.payment;
+  const event = JSON.parse(rawBody);
+  const payment = event?.payment;
 
-    if (!payment || payment.state !== "SUCCESS") {
-        return NextResponse.json({ ok: true });
-    }
-
-    const referenceId = payment.referenceId as string;
-    const amount = Number(payment.amount);
-    const currency = payment.currency;
-
-    const email = referenceId.split("-")[1];
-    if (!email) return NextResponse.json({ ok: true });
-
-    const user = await prisma.user.findUnique({
-        where: { email },
-    });
-
-    if (!user) return NextResponse.json({ ok: true });
-
-    const tokens = calculateTokens(amount, "custom");
-
-    const transaction = await prisma.$transaction(async (tx) => {
-        await tx.user.update({
-            where: { id: user.id },
-            data: {
-                tokenBalance: { increment: tokens },
-            },
-        });
-
-        return tx.transaction.create({
-            data: {
-                userId: user.id,
-                action: "topup",
-                amount,
-                currency,
-                tokenAmount: tokens,
-                description: "Transfermit top-up",
-            },
-        });
-    });
-
-    const customerEmail = user.email ?? email;
-
-    await sendTopUpInvoiceEmail({
-        amount,
-        createdAt: transaction.createdAt,
-        currency,
-        customerEmail,
-        customerName:
-            user.name ??
-            ([user.firstName, user.lastName].filter(Boolean).join(" ").trim() || customerEmail),
-        description: transaction.description,
-        tokens,
-        transactionId: transaction.id,
-    });
-
+  if (!payment || payment.state !== "SUCCESS") {
     return NextResponse.json({ ok: true });
+  }
+
+  const referenceId = payment.referenceId as string | undefined;
+  if (!referenceId) {
+    return NextResponse.json({ error: "Missing payment reference" }, { status: 400 });
+  }
+
+  const reference = parseTopUpReference(referenceId);
+  if (!reference) {
+    return NextResponse.json({ error: "Invalid payment reference" }, { status: 400 });
+  }
+
+  const amount = Number(payment.amount);
+  const currency = payment.currency as Currency;
+  const externalRef =
+    typeof payment.id === "string" && payment.id.trim()
+      ? `transfermit:${payment.id}`
+      : `transfermit:${referenceId}`;
+
+  const completion = await completeTopUp({
+    amount: Number.isFinite(amount) && amount > 0 ? amount : reference.amount,
+    currency: typeof currency === "string" ? currency : reference.currency,
+    externalRef,
+    planName: reference.planName,
+    planType: reference.planType,
+    source: "transfermit",
+    userId: reference.userId,
+  });
+
+  console.info("[TOPUP][TRANSFERMIT] Completion result:", {
+    delivery: completion.delivery,
+    duplicate: completion.duplicate,
+    externalRef,
+    transactionId: completion.transactionId,
+  });
+
+  return NextResponse.json({ ok: true });
 }

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
+import { useI18n } from "@/i18n/client";
 
 interface Plan {
   id?: string;
@@ -21,6 +22,7 @@ interface FormData {
 }
 
 export default function CheckoutPage() {
+  const { messages, t } = useI18n();
   const [plan, setPlan] = useState<Plan | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -50,7 +52,7 @@ export default function CheckoutPage() {
 
   const handlePay = async () => {
     if (!plan) {
-      alert("No plan selected.");
+      alert(messages.checkout.noPlanSelected);
       return;
     }
 
@@ -73,11 +75,11 @@ export default function CheckoutPage() {
         return;
       }
 
-      alert(`Error: ${data.error || "No payment redirect returned"}`);
+      alert(`Error: ${data.error || messages.checkout.noPaymentRedirect}`);
     } catch (error) {
       console.error(error);
       const message = error instanceof Error ? error.message : String(error);
-      alert("Payment error: " + message);
+      alert(t(messages.checkout.paymentError, { message }));
     } finally {
       setProcessing(false);
     }
@@ -96,9 +98,9 @@ export default function CheckoutPage() {
             <div className="absolute h-20 w-20 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
             <div className="absolute h-12 w-12 rounded-full bg-blue-100" />
           </div>
-          <h2 className="text-lg font-semibold tracking-tight">Generating checkout session...</h2>
+          <h2 className="text-lg font-semibold tracking-tight">{messages.checkout.generatingSession}</h2>
           <p className="mt-2 text-sm text-gray-500">
-            Please wait while we prepare your payment.
+            {messages.checkout.preparingPayment}
           </p>
         </motion.div>
       </div>
@@ -108,9 +110,9 @@ export default function CheckoutPage() {
   if (!plan) {
     return (
       <div className="flex h-screen flex-col items-center justify-center bg-gray-50">
-        <h1 className="mb-3 text-2xl font-semibold text-gray-800">No plan selected</h1>
+        <h1 className="mb-3 text-2xl font-semibold text-gray-800">{messages.checkout.noPlanSelected}</h1>
         <Button onClick={() => (window.location.href = "/")} className="px-5 py-2">
-          Go back
+          {messages.common.back}
         </Button>
       </div>
     );
@@ -126,25 +128,25 @@ export default function CheckoutPage() {
           className="mx-auto max-w-lg rounded-2xl bg-white p-8 shadow-2xl md:p-10"
         >
           <div className="mb-6 flex flex-col items-center border-b pb-5 text-center">
-            <h1 className="text-3xl font-semibold tracking-tight text-gray-800">Checkout</h1>
+            <h1 className="text-3xl font-semibold tracking-tight text-gray-800">{messages.checkout.checkout}</h1>
             <p className="mt-2 text-gray-500">
-              Review your details and complete your purchase securely.
+              {messages.checkout.review}
             </p>
           </div>
 
           <div className="mb-8 rounded-xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="mb-3 text-lg font-semibold text-gray-800">Invoice Summary</h2>
+            <h2 className="mb-3 text-lg font-semibold text-gray-800">{messages.checkout.invoiceSummary}</h2>
             <div className="space-y-2 text-sm text-gray-600">
               <div className="flex justify-between">
-                <span>Plan:</span>
+                <span>{messages.checkout.plan}</span>
                 <span className="font-medium text-gray-800">{plan.name}</span>
               </div>
               <div className="flex justify-between">
-                <span>Tokens:</span>
-                <span>{plan.tokens ? plan.tokens.toLocaleString() : "Custom amount"}</span>
+                <span>{messages.checkout.tokens}</span>
+                <span>{plan.tokens ? plan.tokens.toLocaleString() : messages.common.customAmount}</span>
               </div>
               <div className="flex justify-between border-t pt-2 font-semibold">
-                <span>Total due:</span>
+                <span>{messages.checkout.totalDue}</span>
                 <span className="text-blue-600">
                   {plan.price} {plan.currency}
                 </span>
@@ -153,10 +155,10 @@ export default function CheckoutPage() {
           </div>
 
           <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-6">
-            <h2 className="mb-3 text-lg font-semibold text-gray-800">Payment Details</h2>
+            <h2 className="mb-3 text-lg font-semibold text-gray-800">{messages.checkout.paymentDetails}</h2>
             <div className="space-y-4">
               <div>
-                <label className="mb-1 block text-sm text-gray-600">Cardholder Name</label>
+                <label className="mb-1 block text-sm text-gray-600">{messages.checkout.cardholderName}</label>
                 <input
                   name="name"
                   value={form.name}
@@ -168,7 +170,7 @@ export default function CheckoutPage() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm text-gray-600">Card Number</label>
+                <label className="mb-1 block text-sm text-gray-600">{messages.checkout.cardNumber}</label>
                 <input
                   name="cardNumber"
                   value={form.cardNumber}
@@ -182,7 +184,7 @@ export default function CheckoutPage() {
 
               <div className="flex gap-3">
                 <div className="w-1/2">
-                  <label className="mb-1 block text-sm text-gray-600">Expiry Date</label>
+                  <label className="mb-1 block text-sm text-gray-600">{messages.checkout.expiryDate}</label>
                   <input
                     name="expiry"
                     value={form.expiry}
@@ -194,7 +196,7 @@ export default function CheckoutPage() {
                   />
                 </div>
                 <div className="w-1/2">
-                  <label className="mb-1 block text-sm text-gray-600">CVV</label>
+                  <label className="mb-1 block text-sm text-gray-600">{messages.checkout.cvv}</label>
                   <input
                     name="cvv"
                     value={form.cvv}
@@ -208,7 +210,7 @@ export default function CheckoutPage() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm text-gray-600">Billing Address</label>
+                <label className="mb-1 block text-sm text-gray-600">{messages.checkout.billingAddress}</label>
                 <input
                   name="address"
                   value={form.address}
@@ -226,7 +228,7 @@ export default function CheckoutPage() {
             disabled={processing}
             className="w-full rounded-xl bg-blue-600 py-3 text-sm font-medium text-white shadow-md transition-all hover:bg-blue-700 hover:shadow-lg"
           >
-            {processing ? "Redirecting..." : "Pay Now"}
+            {processing ? messages.checkout.redirecting : messages.checkout.payNow}
           </Button>
 
           <div className="mt-6 text-center">
@@ -234,14 +236,14 @@ export default function CheckoutPage() {
               onClick={() => (window.location.href = "/")}
               className="text-sm text-gray-500 transition-all hover:text-gray-700 hover:underline"
             >
-              Back to Plans
+              {messages.checkout.backToPlans}
             </button>
           </div>
 
           <div className="mt-10 border-t pt-4 text-center text-xs text-gray-400">
-            Secured by <span className="font-semibold text-gray-600">ShapeAI Payments</span>
+            {messages.checkout.securedBy}
             <br />
-            Your transaction is encrypted and protected.
+            {messages.checkout.encrypted}
           </div>
         </motion.div>
       </AnimatePresence>

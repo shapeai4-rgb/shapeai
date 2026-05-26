@@ -61,13 +61,17 @@ describe("POST /api/register", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(sendWelcomeEmailMock).toHaveBeenCalledWith({
-      email: "new@example.com",
-      firstName: "New",
-      lastName: "User",
-      name: "New User",
-      tokenBalance: 10,
-    });
+    expect(sendWelcomeEmailMock).toHaveBeenCalledWith(
+      {
+        email: "new@example.com",
+        firstName: "New",
+        lastName: "User",
+        name: "New User",
+        tokenBalance: 10,
+      },
+      expect.any(Date),
+      "en"
+    );
   });
 
   it("does not send a welcome email when the email already exists", async () => {

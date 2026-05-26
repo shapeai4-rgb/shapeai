@@ -4,12 +4,14 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import OpenAI from "openai";
 import { calculateGenerationCost, hasEnoughTokens, type CostCalculationRequest } from "@/lib/cost-calculation";
+import { LANGUAGE_NAMES, normalizeLocale, type Locale } from "@/i18n/config";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 interface GenerateApiRequest extends CostCalculationRequest {
+  locale?: Locale;
   diet: {
     types: string[];
     [key: string]: unknown;
@@ -28,6 +30,8 @@ export async function POST(request: Request) {
     // --- Шаг 2: Получение данных и расчет стоимости ---
     const formData: GenerateApiRequest = await request.json();
     const { days } = formData;
+    const locale = normalizeLocale(formData.locale);
+    const languageName = LANGUAGE_NAMES[locale];
     
     // Рассчитываем стоимость генерации
     const costCalculation = calculateGenerationCost(formData);
@@ -90,6 +94,7 @@ export async function POST(request: Request) {
       2.  Every recipe_id used in the 'days' array MUST have a corresponding entry in the 'recipes' object.
       3.  The 'shopping_list' must be aggregated for the entire week. Sum up the quantities of identical ingredients.
       4.  Base the plan on the user's detailed preferences provided in the user prompt.
+      5.  Write every user-facing string value in ${languageName}. Keep JSON property names and enum values exactly as specified in English.
     `;
     
     const userPrompt = `Generate the meal plan based on this user data: ${JSON.stringify(formData)}`;

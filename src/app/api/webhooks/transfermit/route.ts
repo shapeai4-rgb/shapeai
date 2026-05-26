@@ -48,6 +48,7 @@ export async function POST(req: Request) {
     amount: Number.isFinite(amount) && amount > 0 ? amount : reference.amount,
     currency: typeof currency === "string" ? currency : reference.currency,
     externalRef,
+    locale: reference.locale,
     planName: reference.planName,
     planType: reference.planType,
     source: "transfermit",

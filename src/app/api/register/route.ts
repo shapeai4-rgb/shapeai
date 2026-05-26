@@ -4,11 +4,13 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { prisma } from "@/lib/prisma";
 import { sendWelcomeEmail } from "@/lib/registration-confirmation";
+import { getLocaleFromRequest } from "@/i18n/server";
 
 // Эта функция будет обрабатывать POST-запросы на /api/register
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const locale = getLocaleFromRequest(request);
     const { 
       email, password, firstName, lastName,
       phone, dateOfBirth, street, city, country, postCode
@@ -46,13 +48,17 @@ export async function POST(request: Request) {
       },
     });
 
-    const delivery = await sendWelcomeEmail({
-      email: user.email ?? email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      name: user.name,
-      tokenBalance: user.tokenBalance,
-    });
+    const delivery = await sendWelcomeEmail(
+      {
+        email: user.email ?? email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        name: user.name,
+        tokenBalance: user.tokenBalance,
+      },
+      new Date(),
+      locale
+    );
 
     console.info("[REGISTER] Welcome email delivery:", {
       delivery,

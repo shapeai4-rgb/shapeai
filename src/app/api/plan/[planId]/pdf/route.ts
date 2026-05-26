@@ -6,6 +6,7 @@ import { renderToStream, DocumentProps } from "@react-pdf/renderer";
 import { PlanPdfDocument } from "@/components/pdf/PlanPdfDocument";
 import { type MealPlanData } from "@/types/pdf";
 import React from "react";
+import { getLocaleFromRequest } from "@/i18n/server";
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -16,6 +17,7 @@ export async function GET(
 ) {
   try {
     const { planId } = await params;
+    const locale = getLocaleFromRequest(request);
 
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
@@ -37,7 +39,7 @@ export async function GET(
     const planData = mealPlan.content as unknown as MealPlanData;
     
     const pdfStream = await renderToStream(
-      React.createElement(PlanPdfDocument, { plan: planData }) as unknown as React.ReactElement<DocumentProps>
+      React.createElement(PlanPdfDocument, { plan: planData, locale }) as unknown as React.ReactElement<DocumentProps>
     );
 
     return new NextResponse(pdfStream as unknown as ReadableStream, {

@@ -3,27 +3,30 @@ import { Resend } from "resend";
 import { deriveInvoiceNumber, renderInvoicePdfBuffer, type InvoicePdfData } from "../../InvoicePdf";
 import { TopUpInvoiceEmail } from "@/components/emails/TopUpInvoiceEmail";
 import { deliverySkipped, type EmailDeliveryResult } from "@/lib/email-delivery-result";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
+import { formatMessage, getMessages } from "@/i18n/messages";
 
 const SUPPORT_EMAIL = "info@shapeai.co.uk";
 
 export type TopUpInvoicePayload = InvoicePdfData;
 
-function buildInvoiceText(payload: TopUpInvoicePayload, invoiceNumber: string) {
+function buildInvoiceText(payload: TopUpInvoicePayload, invoiceNumber: string, locale: Locale) {
   const amountLabel = `${payload.amount.toFixed(2)} ${payload.currency.toUpperCase()}`;
+  const m = getMessages(locale).email.invoice;
 
   return [
-    `Hi ${payload.customerName},`,
+    formatMessage(m.greeting, { name: payload.customerName }),
     "",
-    "Your ShapeAI invoice is attached.",
-    `Invoice number: ${invoiceNumber}`,
-    `Transaction reference: ${payload.transactionId}`,
-    `Amount paid: ${amountLabel}`,
+    m.attached,
+    `${m.invoiceNumber}: ${invoiceNumber}`,
+    `${m.transactionRef}: ${payload.transactionId}`,
+    `${m.amountPaid}: ${amountLabel}`,
     "",
-    "If you have any billing questions, contact info@shapeai.co.uk.",
+    m.billingQuestions,
   ].join("\n");
 }
 
-export async function sendTopUpInvoiceEmail(payload: TopUpInvoicePayload): Promise<EmailDeliveryResult> {
+export async function sendTopUpInvoiceEmail(payload: TopUpInvoicePayload, locale: Locale = DEFAULT_LOCALE): Promise<EmailDeliveryResult> {
   if (!payload.customerEmail) {
     console.warn("Invoice email skipped: customer email is missing.");
     return deliverySkipped("Invoice email skipped: customer email is missing.");
@@ -37,6 +40,7 @@ export async function sendTopUpInvoiceEmail(payload: TopUpInvoicePayload): Promi
   try {
     const invoiceNumber = deriveInvoiceNumber(payload.transactionId, payload.createdAt);
     const amountLabel = `${payload.amount.toFixed(2)} ${payload.currency.toUpperCase()}`;
+    const m = getMessages(locale).email.invoice;
 
     const [html, pdfBuffer] = await Promise.all([
       render(
@@ -44,10 +48,11 @@ export async function sendTopUpInvoiceEmail(payload: TopUpInvoicePayload): Promi
           amountLabel,
           customerName: payload.customerName,
           invoiceNumber,
+          locale,
           transactionId: payload.transactionId,
         })
       ),
-      renderInvoicePdfBuffer(payload),
+      renderInvoicePdfBuffer({ ...payload, locale }),
     ]);
 
     const resend = new Resend(process.env.RESEND_API_KEY);
@@ -62,8 +67,8 @@ export async function sendTopUpInvoiceEmail(payload: TopUpInvoicePayload): Promi
       from: `ShapeAI <${SUPPORT_EMAIL}>`,
       html,
       replyTo: SUPPORT_EMAIL,
-      subject: `ShapeAI invoice ${invoiceNumber}`,
-      text: buildInvoiceText(payload, invoiceNumber),
+      subject: formatMessage(m.subject, { invoiceNumber }),
+      text: buildInvoiceText(payload, invoiceNumber, locale),
       to: [payload.customerEmail],
     });
 

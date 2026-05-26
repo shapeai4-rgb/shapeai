@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, Coins, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { useI18n } from '@/i18n/client';
 
 interface InsufficientTokensModalProps {
   isOpen: boolean;
@@ -24,10 +25,12 @@ export function InsufficientTokensModal({
   availableTokens,
   shortfall
 }: InsufficientTokensModalProps) {
+  const { messages } = useI18n();
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <Modal open={isOpen} onClose={onClose} title="Insufficient Tokens">
+        <Modal open={isOpen} onClose={onClose} title={messages.insufficientTokens.title}>
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -48,10 +51,10 @@ export function InsufficientTokensModal({
               </motion.div>
               
               <h2 className="text-xl font-headings font-semibold text-neutral-ink mb-2">
-                Insufficient Tokens
+                {messages.insufficientTokens.title}
               </h2>
               <p className="text-neutral-slate">
-                You don&apos;t have enough tokens to generate this meal plan.
+                {messages.insufficientTokens.message}
               </p>
             </div>
 
@@ -59,17 +62,17 @@ export function InsufficientTokensModal({
             <div className="bg-neutral-lines/10 rounded-lg p-4 mb-6">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-neutral-slate">Required tokens</span>
+                  <span className="text-sm text-neutral-slate">{messages.cost.totalRequired}</span>
                   <span className="font-medium text-neutral-ink">{requiredTokens}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-neutral-slate">Available tokens</span>
+                  <span className="text-sm text-neutral-slate">Available {messages.common.tokens}</span>
                   <span className="font-medium text-neutral-ink">{availableTokens}</span>
                 </div>
                 <div className="border-t border-neutral-lines pt-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-red-600">Shortfall</span>
-                    <span className="font-bold text-red-600">{shortfall} tokens</span>
+                    <span className="text-sm font-medium text-red-600">{messages.cost.insufficient}</span>
+                    <span className="font-bold text-red-600">{shortfall} {messages.common.tokens}</span>
                   </div>
                 </div>
               </div>
@@ -81,14 +84,14 @@ export function InsufficientTokensModal({
                 onClick={onClose}
                 className="flex-1 bg-neutral-lines text-neutral-ink hover:bg-neutral-lines/80"
               >
-                Cancel
+                {messages.common.back}
               </Button>
               <Button
                 onClick={onTopUp}
                 className="flex-1 bg-accent hover:bg-accent/90"
               >
                 <Coins className="w-4 h-4 mr-2" />
-                Top Up Tokens
+                {messages.insufficientTokens.buyMore}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>

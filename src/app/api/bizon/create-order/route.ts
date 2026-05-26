@@ -6,6 +6,7 @@ import { completeTopUp, getTopUpSuccessRedirect } from "@/lib/top-up";
 import { isWithoutPaymentEnabled } from "@/lib/payment-mode";
 import { createTopUpReference } from "@/lib/top-up-reference";
 import type { Currency, PlanType } from "@/lib/tokenCalculator";
+import { getLocaleFromRequest } from "@/i18n/server";
 
 export const runtime = "nodejs";
 
@@ -33,6 +34,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    const locale = getLocaleFromRequest(req);
     const amount = Number(body.amount);
     const currency = (body.currency ?? "EUR") as Currency;
     const planType = body.planType;
@@ -54,6 +56,7 @@ export async function POST(req: Request) {
         customerEmail: session.user.email,
         customerName: session.user.name,
         externalRef,
+        locale,
         planName,
         planType,
         source: "test-mode",
@@ -76,6 +79,7 @@ export async function POST(req: Request) {
     const referenceId = createTopUpReference({
       amount,
       currency,
+      locale,
       nonce: crypto.randomBytes(6).toString("hex"),
       planName,
       planType,
@@ -90,7 +94,7 @@ export async function POST(req: Request) {
         firstName: session.user.name ?? "User",
         ip: getClientIp(req),
         lastName: "Client",
-        locale: "en",
+        locale,
         referenceId: `USER_${session.user.id}`,
       },
       declineReturnUrl: `${DECLINE_URL}?id={id}&ref={referenceId}&state={state}`,

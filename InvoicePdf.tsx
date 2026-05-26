@@ -1,5 +1,8 @@
 import React from "react";
 import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
+import { formatMessage, getMessages } from "@/i18n/messages";
+import { formatLocalizedDate } from "@/i18n/server";
 
 const BRAND_NAME = "ShapeAI.co.uk";
 const COMPANY_LEGAL_NAME = "PREPARING BUSINESS LTD";
@@ -17,6 +20,7 @@ export type InvoicePdfData = {
   amount: number;
   currency: string;
   description?: string | null;
+  locale?: Locale;
 };
 
 const styles = StyleSheet.create({
@@ -152,14 +156,6 @@ const styles = StyleSheet.create({
   },
 });
 
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
-}
-
 function formatMoney(amount: number, currency: string) {
   return `${amount.toFixed(2)} ${currency.toUpperCase()}`;
 }
@@ -175,35 +171,37 @@ export function deriveInvoiceNumber(transactionId: string, createdAt: Date) {
 }
 
 function InvoicePdfDocument(data: InvoicePdfData) {
+  const locale = data.locale ?? DEFAULT_LOCALE;
+  const m = getMessages(locale).pdf;
   const invoiceNumber = deriveInvoiceNumber(data.transactionId, data.createdAt);
   const lineDescription =
-    data.description?.trim() || `ShapeAI token top-up (${data.tokens} tokens)`;
+    data.description?.trim() || formatMessage(m.tokenTopUp, { count: data.tokens });
 
   return (
     <Document title={`ShapeAI Invoice ${invoiceNumber}`}>
       <Page size="A4" style={styles.page}>
         <View style={styles.hero}>
-          <Text style={styles.badge}>Paid top-up</Text>
-          <Text style={styles.title}>Invoice / Receipt</Text>
+          <Text style={styles.badge}>{m.paidTopUp}</Text>
+          <Text style={styles.title}>{m.invoiceReceipt}</Text>
           <Text style={styles.subtitle}>
-            This document confirms a successful ShapeAI token purchase.
+            {m.subtitle}
           </Text>
         </View>
 
         <View style={styles.row}>
           <View style={[styles.card, styles.column]}>
-            <Text style={styles.sectionTitle}>Invoice details</Text>
+            <Text style={styles.sectionTitle}>{m.invoiceDetails}</Text>
             <Text style={[styles.bodyText, styles.strong]}>{BRAND_NAME}</Text>
             <Text style={styles.bodyText}>Invoice No: {invoiceNumber}</Text>
-            <Text style={styles.bodyText}>Paid on: {formatDate(data.createdAt)}</Text>
-            <Text style={styles.bodyText}>Status: Paid</Text>
-            <Text style={styles.bodyText}>Reference: {data.transactionId}</Text>
+            <Text style={styles.bodyText}>{m.paidOn}: {formatLocalizedDate(data.createdAt, locale)}</Text>
+            <Text style={styles.bodyText}>{m.status}: {m.paid}</Text>
+            <Text style={styles.bodyText}>{m.reference}: {data.transactionId}</Text>
           </View>
 
           <View style={[styles.card, styles.column]}>
-            <Text style={styles.sectionTitle}>Seller</Text>
+            <Text style={styles.sectionTitle}>{m.seller}</Text>
             <Text style={[styles.bodyText, styles.strong]}>{COMPANY_LEGAL_NAME}</Text>
-            <Text style={styles.bodyText}>Company No: {COMPANY_NUMBER}</Text>
+            <Text style={styles.bodyText}>{m.companyNo}: {COMPANY_NUMBER}</Text>
             <Text style={styles.bodyText}>{COMPANY_ADDRESS}</Text>
             <Text style={styles.bodyText}>{COMPANY_PHONE}</Text>
             <Text style={styles.bodyText}>{COMPANY_EMAIL}</Text>
@@ -211,19 +209,19 @@ function InvoicePdfDocument(data: InvoicePdfData) {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Bill to</Text>
+          <Text style={styles.sectionTitle}>{m.billTo}</Text>
           <Text style={[styles.bodyText, styles.strong]}>{data.customerName}</Text>
           <Text style={styles.bodyText}>{data.customerEmail}</Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Purchased item</Text>
+          <Text style={styles.sectionTitle}>{m.item}</Text>
           <View style={styles.table}>
             <View style={styles.tableHeader}>
-              <Text style={[styles.cell, styles.cellDescription, styles.strong]}>Description</Text>
-              <Text style={[styles.cell, styles.cellQty, styles.strong]}>Qty</Text>
-              <Text style={[styles.cell, styles.cellUnit, styles.strong]}>Unit</Text>
-              <Text style={[styles.cell, styles.cellTotal, styles.strong]}>Total</Text>
+              <Text style={[styles.cell, styles.cellDescription, styles.strong]}>{m.description}</Text>
+              <Text style={[styles.cell, styles.cellQty, styles.strong]}>{m.qty}</Text>
+              <Text style={[styles.cell, styles.cellUnit, styles.strong]}>{m.unit}</Text>
+              <Text style={[styles.cell, styles.cellTotal, styles.strong]}>{m.totalPaid}</Text>
             </View>
             <View style={[styles.tableRow, styles.tableRowLast]}>
               <Text style={[styles.cell, styles.cellDescription]}>{lineDescription}</Text>
@@ -235,19 +233,18 @@ function InvoicePdfDocument(data: InvoicePdfData) {
 
           <View style={styles.totals}>
             <View style={styles.totalRow}>
-              <Text>Subtotal</Text>
+              <Text>{m.subtotal}</Text>
               <Text>{formatMoney(data.amount, data.currency)}</Text>
             </View>
             <View style={[styles.totalRow, styles.totalFinal]}>
-              <Text>Total paid</Text>
+              <Text>{m.totalPaid}</Text>
               <Text>{formatMoney(data.amount, data.currency)}</Text>
             </View>
           </View>
         </View>
 
         <Text style={styles.footer}>
-          Thank you for your purchase. This invoice confirms successful payment for
-          your ShapeAI token top-up.
+          {m.thankYou}
         </Text>
       </Page>
     </Document>

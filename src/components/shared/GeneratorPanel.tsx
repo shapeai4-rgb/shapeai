@@ -10,6 +10,7 @@ import { type GeneratorFormData } from '@/types';
 import { CostDisplay } from '@/components/shared/CostDisplay';
 import { InsufficientTokensModal } from '@/components/shared/InsufficientTokensModal';
 import { type CostCalculationRequest } from '@/lib/cost-calculation';
+import { useI18n } from '@/i18n/client';
 
 type GeneratorPanelProps = {
   onGenerate: (formData: GeneratorFormData) => void;
@@ -38,6 +39,12 @@ const ChipGroup = ({ options, selected, onToggle }: { options: readonly {id: str
 
 export function GeneratorPanel({ onGenerate, loading, onAuth }: GeneratorPanelProps) {
   const { data: session } = useSession();
+  const { locale, messages } = useI18n();
+  const localizedPlaceholder = {
+    en: messages.generator.freeTextPlaceholder,
+    es: "Ej.: 35 años, 82 kg, quiere comida mediterránea alta en proteína, sin champiñones, máximo 20 min de cocina...",
+    de: "z. B. 35 Jahre, 82 kg, möchte proteinreiche mediterrane Küche, keine Pilze, max. 20 Min. Kochzeit...",
+  }[locale];
   const isLoggedIn = !!session;
 
   // Unified state for all form fields with default values
@@ -145,7 +152,7 @@ export function GeneratorPanel({ onGenerate, loading, onAuth }: GeneratorPanelPr
       return;
     }
     
-    onGenerate(formData);
+    onGenerate({ ...formData, locale });
   };
   
   const handleTopUp = () => {
@@ -168,20 +175,20 @@ export function GeneratorPanel({ onGenerate, loading, onAuth }: GeneratorPanelPr
         </div>
       )}
       
-      <label className="text-sm text-neutral-slate">Free-text brief</label>
+      <label className="text-sm text-neutral-slate">{messages.generator.freeTextLabel}</label>
       <textarea
         value={formData.freeText}
         onChange={(e) => setFormData(prev => ({ ...prev, freeText: e.target.value }))}
         rows={4}
-        placeholder="e.g., Prefer quick dinners, no onion, budget €10/day"
+        placeholder={localizedPlaceholder}
         className="mt-1 w-full resize-y rounded-xl border border-neutral-lines px-4 py-3 outline-none focus:ring-2 focus:ring-accent/50"
       />
 
       <div className="mt-5 rounded-xl border border-accent/20 bg-accent/10 p-4">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-medium text-accent">Days to generate</div>
-            <div className="mt-0.5 text-xs text-accent/80">Choose the number of days for your generated plan and PDF.</div>
+            <div className="text-sm font-medium text-accent">{messages.generator.days}</div>
+            <div className="mt-0.5 text-xs text-accent/80">{messages.generator.daysHelp}</div>
           </div>
           <div className="text-2xl font-semibold text-accent tabular-nums">{formData.days}</div>
         </div>
@@ -196,14 +203,14 @@ export function GeneratorPanel({ onGenerate, loading, onAuth }: GeneratorPanelPr
         
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <Button onClick={handleSubmit} locked={!isLoggedIn} disabled={loading}>
-          {loading ? 'Generating...' : 'Generate preview plan'}
+          {loading ? messages.generator.generating : messages.generator.generate}
         </Button>
         <button 
           type="button" 
           onClick={() => setShowAdvanced((v) => !v)} 
           className="group relative inline-flex items-center gap-2 rounded-xl border-2 border-accent/50 bg-white px-4 py-2 text-accent shadow-sm hover:bg-accent/5"
         >
-          <span>{showAdvanced ? 'Hide options' : '+ More options'}</span>
+          <span>{showAdvanced ? messages.generator.hideOptions : messages.generator.moreOptions}</span>
         </button>
       </div>
 
@@ -219,7 +226,7 @@ export function GeneratorPanel({ onGenerate, loading, onAuth }: GeneratorPanelPr
                   advTab === tab ? "border-b-2 border-accent text-accent" : "text-neutral-slate hover:bg-neutral-lines/50"
                 )}
               >
-                {tab}
+                {tab === "Goals" ? messages.generator.goals : tab === "Structure" ? messages.generator.structure : messages.generator.diet}
               </button>
             ))}
           </div>

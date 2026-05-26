@@ -1,163 +1,141 @@
-import React from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
+"use client";
+
+import React from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useI18n } from "@/i18n/client";
 
 export function Footer() {
-  // Данные компании
+  const { locale, messages } = useI18n();
+  const localizedLinks = {
+    en: {
+      aiUseSafety: "AI Use & Safety Policy",
+      cookiePolicy: "Cookie Policy",
+      medicalDisclaimer: "Medical & Nutrition Disclaimer",
+      privacyPolicy: "Privacy Policy",
+      refundsPolicy: "Refund and Return Policy",
+      terms: "Terms and Conditions",
+    },
+    es: {
+      aiUseSafety: "Política de uso y seguridad de IA",
+      cookiePolicy: "Política de cookies",
+      medicalDisclaimer: "Descargo médico y nutricional",
+      privacyPolicy: "Política de privacidad",
+      refundsPolicy: "Política de reembolsos y devoluciones",
+      terms: "Términos y condiciones",
+    },
+    de: {
+      aiUseSafety: "KI-Nutzung und Sicherheit",
+      cookiePolicy: "Cookie-Richtlinie",
+      medicalDisclaimer: "Medizinischer und Ernährungshinweis",
+      privacyPolicy: "Datenschutzerklärung",
+      refundsPolicy: "Rückerstattungs- und Rückgaberichtlinie",
+      terms: "Allgemeine Geschäftsbedingungen",
+    },
+  }[locale];
   const companyInfo = {
     name: "PREPARING BUSINESS LTD",
     companyNumber: "16107292",
     address: "12 Skinner Lane, Leeds, England, LS7 1DL",
     email: "info@shapeai.co.uk",
-    phone: "+44 7418 638914"
+    phone: "+44 7463 585216",
   };
 
-  // Legal ссылки
   const legalLinks = [
-    { href: "/privacy-policy", text: "Privacy Policy" },
-    { href: "/cookie-policy", text: "Cookie Policy" },
-    { href: "/terms-of-service", text: "Terms and Conditions" },
-    { href: "/refunds-policy", text: "Refund and Return Policy" },
+    { href: "/privacy-policy", text: localizedLinks.privacyPolicy },
+    { href: "/cookie-policy", text: localizedLinks.cookiePolicy },
+    { href: "/terms-of-service", text: localizedLinks.terms },
+    { href: "/refunds-policy", text: localizedLinks.refundsPolicy },
   ];
 
-  // Полезные ссылки
   const usefulLinks = [
-    { href: "/ai-use-safety-policy", text: "AI Use & Safety Policy" },
-    { href: "/medical-nutrition-disclaimer", text: "Medical & Nutrition Disclaimer" },
-    { href: "/contact", text: "Contact" },
-    { href: "/#faq", text: "FAQ" },
-    { href: "/#topup", text: "Pricing" },
+    { href: "/ai-use-safety-policy", text: localizedLinks.aiUseSafety },
+    { href: "/medical-nutrition-disclaimer", text: localizedLinks.medicalDisclaimer },
+    { href: "/contact", text: messages.footer.contact },
+    { href: "/#faq", text: messages.common.faq },
+    { href: "/#topup", text: messages.header.pricing },
   ];
 
-  // Социальные сети
   const socialLinks = [
-    { 
-      href: "https://www.instagram.com/shapeai.uk/?igsh=NG04bHhueXFvemhm&utm_source=qr#", 
+    {
+      href: "https://www.instagram.com/shapeai.uk/?igsh=NG04bHhueXFvemhm&utm_source=qr#",
       text: "Instagram",
-      icon: "📷"
+      icon: "IG",
     },
     {
       href: "https://www.linkedin.com/company/shape%E2%80%94ai",
       text: "LinkedIn",
-      icon: "in"
+      icon: "in",
     },
   ];
 
   return (
     <footer className="border-t border-neutral-lines bg-white">
       <div className="mx-auto max-w-7xl px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          
-          {/* Company Column */}
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-neutral-ink">Company</h3>
+            <h3 className="text-lg font-semibold text-neutral-ink">{messages.footer.company}</h3>
             <div className="space-y-2 text-sm text-neutral-slate">
               <div className="font-medium text-neutral-ink">{companyInfo.name}</div>
-              <div>Company no.: {companyInfo.companyNumber}</div>
+              <div>{messages.footer.companyNo}: {companyInfo.companyNumber}</div>
               <div>{companyInfo.address}</div>
               <div>
-                <a href={`mailto:${companyInfo.email}`} className="hover:text-neutral-ink transition-colors">
+                <a href={`mailto:${companyInfo.email}`} className="transition-colors hover:text-neutral-ink">
                   {companyInfo.email}
                 </a>
               </div>
               <div>
-                <a href={`tel:${companyInfo.phone}`} className="hover:text-neutral-ink transition-colors">
+                <a href={`tel:${companyInfo.phone}`} className="transition-colors hover:text-neutral-ink">
                   {companyInfo.phone}
                 </a>
               </div>
             </div>
           </div>
 
-          {/* Legal Column */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-neutral-ink">Legal</h3>
+            <h3 className="text-lg font-semibold text-neutral-ink">{messages.footer.legal}</h3>
             <div className="space-y-2">
-              {legalLinks.map(link => (
-                <Link 
-                  key={link.href} 
-                  href={link.href} 
-                  className="block text-sm text-neutral-slate hover:text-neutral-ink transition-colors"
-                >
+              {legalLinks.map((link) => (
+                <Link key={link.href} href={link.href} className="block text-sm text-neutral-slate transition-colors hover:text-neutral-ink">
                   {link.text}
                 </Link>
               ))}
             </div>
           </div>
 
-          {/* Useful Links Column */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-neutral-ink">Useful Links</h3>
+            <h3 className="text-lg font-semibold text-neutral-ink">{messages.footer.usefulLinks}</h3>
             <div className="space-y-2">
-              {usefulLinks.map(link => (
-                <Link 
-                  key={link.href} 
-                  href={link.href} 
-                  className="block text-sm text-neutral-slate hover:text-neutral-ink transition-colors"
-                >
+              {usefulLinks.map((link) => (
+                <Link key={link.href} href={link.href} className="block text-sm text-neutral-slate transition-colors hover:text-neutral-ink">
                   {link.text}
                 </Link>
               ))}
             </div>
           </div>
 
-          {/* Social Column */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-neutral-ink">Social</h3>
+            <h3 className="text-lg font-semibold text-neutral-ink">{messages.footer.social}</h3>
             <div className="space-y-2">
-              {socialLinks.map(link => (
-                <a 
-                  key={link.href} 
-                  href={link.href} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-neutral-slate hover:text-neutral-ink transition-colors"
-                >
-                  <span className="text-lg">{link.icon}</span>
+              {socialLinks.map((link) => (
+                <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-neutral-slate transition-colors hover:text-neutral-ink">
+                  <span className="text-xs font-semibold">{link.icon}</span>
                   {link.text}
                 </a>
               ))}
             </div>
           </div>
-
         </div>
 
-        {/* Bottom section with copyright */}
-        <div className="mt-12 pt-8 border-t border-neutral-lines">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="mt-12 border-t border-neutral-lines pt-8">
+          <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <div className="text-sm text-neutral-slate">
-              © {new Date().getFullYear()} {companyInfo.name}. All rights reserved.
+              © {new Date().getFullYear()} {companyInfo.name}. {messages.footer.allRights}
             </div>
-            
-            {/* Payment logos */}
             <div className="flex items-center gap-4">
-              <Image 
-                src="/visa-logo.svg" 
-                alt="Visa"
-                width={40}
-                height={24}
-                className="h-6 w-auto opacity-60"
-              />
-              <Image 
-                src="/mastercard-logo.svg" 
-                alt="Mastercard"
-                width={40}
-                height={24}
-                className="h-6 w-auto opacity-60"
-              />
-              <Image 
-                src="/American_Express_logo.svg" 
-                alt="American Express"
-                width={40}
-                height={24}
-                className="h-6 w-auto opacity-60"
-              />
-              <Image 
-                src="/Maestro_Logo.svg" 
-                alt="Maestro"
-                width={40}
-                height={24}
-                className="h-6 w-auto opacity-60"
-              />
+              <Image src="/visa-logo.svg" alt="Visa" width={40} height={24} className="h-6 w-auto opacity-60" />
+              <Image src="/mastercard-logo.svg" alt="Mastercard" width={40} height={24} className="h-6 w-auto opacity-60" />
+              <Image src="/pci-dss-logo.svg" alt="PCI DSS" width={40} height={24} className="h-6 w-auto opacity-60" />
             </div>
           </div>
         </div>

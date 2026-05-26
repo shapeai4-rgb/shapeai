@@ -1,280 +1,252 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
+import { useI18n } from "@/i18n/client";
 
 interface Plan {
-    name: string;
-    price: number;
-    currency: string;
-    tokens?: number;
+  id?: string;
+  name: string;
+  price: number;
+  currency: string;
+  tokens?: number;
 }
 
 interface FormData {
-    cardNumber: string;
-    expiry: string;
-    cvv: string;
-    name: string;
-    address: string;
+  address: string;
+  cardNumber: string;
+  cvv: string;
+  expiry: string;
+  name: string;
 }
 
 export default function CheckoutPage() {
-    const [plan, setPlan] = useState<Plan | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [processing, setProcessing] = useState(false);
-    const [form, setForm] = useState<FormData>({
-        cardNumber: "",
-        expiry: "",
-        cvv: "",
-        name: "",
-        address: "",
-    });
+  const { messages, t } = useI18n();
+  const [plan, setPlan] = useState<Plan | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const [form, setForm] = useState<FormData>({
+    address: "",
+    cardNumber: "",
+    cvv: "",
+    expiry: "",
+    name: "",
+  });
 
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            const stored = localStorage.getItem("selectedPlan");
-            if (stored) setPlan(JSON.parse(stored) as Plan);
-            setLoading(false);
-        }, 1000);
-        return () => clearTimeout(timeout);
-    }, []);
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const stored = localStorage.getItem("selectedPlan");
+      if (stored) {
+        setPlan(JSON.parse(stored) as Plan);
+      }
+      setLoading(false);
+    }, 1000);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-        setForm({ ...form, [e.target.name]: e.target.value });
+    return () => clearTimeout(timeout);
+  }, []);
 
-    const handlePay = async () => {
-        if (!plan) {
-            alert("No plan selected.");
-            return;
-        }
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({ ...form, [event.target.name]: event.target.value });
+  };
 
-        setProcessing(true);
-        try {
-            const res = await fetch("/api/bizon/create-order", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    name: form.name,
-                    email: "user@example.com",
-                    amount: plan.price * 100,
-                    currency: plan.currency || "USD",
-                    description: `Payment for ${plan.name}`,
-                }),
-            });
+  const handlePay = async () => {
+    if (!plan) {
+      alert(messages.checkout.noPlanSelected);
+      return;
+    }
 
-            const data: { form?: string; error?: string } = await res.json();
-            console.log("💳 Bizon JSON:", data);
+    setProcessing(true);
+    try {
+      const res = await fetch("/api/bizon/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: plan.price,
+          currency: plan.currency || "USD",
+          planName: plan.name,
+          planType: plan.id || "custom",
+        }),
+      });
 
-            if (data.form) {
-                const container = document.createElement("div");
-                container.innerHTML = data.form;
-                document.body.appendChild(container);
+      const data: { error?: string; redirectUrl?: string } = await res.json();
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+        return;
+      }
 
-                const formEl = container.querySelector("form") as HTMLFormElement | null;
-                if (formEl) formEl.submit();
-            } else {
-                alert("Error: no payment form returned");
-            }
-        } catch (err) {
-            console.error(err);
-            const message = err instanceof Error ? err.message : String(err);
-            alert("Payment error: " + message);
-        } finally {
-            setProcessing(false);
-        }
-    };
+      alert(`Error: ${data.error || messages.checkout.noPaymentRedirect}`);
+    } catch (error) {
+      console.error(error);
+      const message = error instanceof Error ? error.message : String(error);
+      alert(t(messages.checkout.paymentError, { message }));
+    } finally {
+      setProcessing(false);
+    }
+  };
 
-    if (loading)
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 text-gray-700">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5 }}
-                    className="flex flex-col items-center"
-                >
-                    <div className="relative flex items-center justify-center w-20 h-20 mb-5">
-                        <div className="absolute w-20 h-20 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                        <div className="absolute w-12 h-12 bg-blue-100 rounded-full"></div>
-                    </div>
-                    <h2 className="text-lg font-semibold tracking-tight">
-                        Generating Checkout Session...
-                    </h2>
-                    <p className="text-sm text-gray-500 mt-2">
-                        Please wait while we prepare your payment.
-                    </p>
-                </motion.div>
-            </div>
-        );
-
-    if (!plan)
-        return (
-            <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
-                <h1 className="text-2xl font-semibold text-gray-800 mb-3">
-                    No plan selected
-                </h1>
-                <Button
-                    onClick={() => (window.location.href = "/")}
-                    className="px-5 py-2"
-                >
-                    Go back
-                </Button>
-            </div>
-        );
-
+  if (loading) {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-gray-100 flex items-center justify-center px-4 py-10">
-            <AnimatePresence>
-                <motion.div
-                    initial={{ opacity: 0, y: 40 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="bg-white shadow-2xl rounded-2xl p-8 md:p-10 max-w-lg w-full"
-                >
-                    <div className="flex flex-col items-center text-center border-b pb-5 mb-6">
-                        <h1 className="text-3xl font-semibold text-gray-800 tracking-tight">
-                            Checkout
-                        </h1>
-                        <p className="text-gray-500 mt-2">
-                            Review your details and complete your purchase securely.
-                        </p>
-                    </div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 text-gray-700">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-col items-center"
+        >
+          <div className="relative mb-5 flex h-20 w-20 items-center justify-center">
+            <div className="absolute h-20 w-20 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
+            <div className="absolute h-12 w-12 rounded-full bg-blue-100" />
+          </div>
+          <h2 className="text-lg font-semibold tracking-tight">{messages.checkout.generatingSession}</h2>
+          <p className="mt-2 text-sm text-gray-500">
+            {messages.checkout.preparingPayment}
+          </p>
+        </motion.div>
+      </div>
+    );
+  }
 
-                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 mb-8">
-                        <h2 className="text-lg font-semibold text-gray-800 mb-3">
-                            Invoice Summary
-                        </h2>
-                        <div className="space-y-2 text-sm text-gray-600">
-                            <div className="flex justify-between">
-                                <span>Plan:</span>
-                                <span className="font-medium text-gray-800">{plan.name}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Tokens:</span>
-                                <span>
-                  {plan.tokens
-                      ? plan.tokens.toLocaleString()
-                      : "Custom amount"}
-                </span>
-                            </div>
-                            <div className="flex justify-between border-t pt-2 font-semibold">
-                                <span>Total due:</span>
-                                <span className="text-blue-600">
+  if (!plan) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center bg-gray-50">
+        <h1 className="mb-3 text-2xl font-semibold text-gray-800">{messages.checkout.noPlanSelected}</h1>
+        <Button onClick={() => (window.location.href = "/")} className="px-5 py-2">
+          {messages.common.back}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-gray-100 px-4 py-10">
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mx-auto max-w-lg rounded-2xl bg-white p-8 shadow-2xl md:p-10"
+        >
+          <div className="mb-6 flex flex-col items-center border-b pb-5 text-center">
+            <h1 className="text-3xl font-semibold tracking-tight text-gray-800">{messages.checkout.checkout}</h1>
+            <p className="mt-2 text-gray-500">
+              {messages.checkout.review}
+            </p>
+          </div>
+
+          <div className="mb-8 rounded-xl border border-gray-200 bg-gray-50 p-6">
+            <h2 className="mb-3 text-lg font-semibold text-gray-800">{messages.checkout.invoiceSummary}</h2>
+            <div className="space-y-2 text-sm text-gray-600">
+              <div className="flex justify-between">
+                <span>{messages.checkout.plan}</span>
+                <span className="font-medium text-gray-800">{plan.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>{messages.checkout.tokens}</span>
+                <span>{plan.tokens ? plan.tokens.toLocaleString() : messages.common.customAmount}</span>
+              </div>
+              <div className="flex justify-between border-t pt-2 font-semibold">
+                <span>{messages.checkout.totalDue}</span>
+                <span className="text-blue-600">
                   {plan.price} {plan.currency}
                 </span>
-                            </div>
-                        </div>
-                    </div>
+              </div>
+            </div>
+          </div>
 
-                    <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 mb-6">
-                        <h2 className="text-lg font-semibold text-gray-800 mb-3">
-                            Payment Details
-                        </h2>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm text-gray-600 mb-1">
-                                    Cardholder Name
-                                </label>
-                                <input
-                                    name="name"
-                                    value={form.name}
-                                    onChange={handleChange}
-                                    type="text"
-                                    placeholder="John Doe"
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                                />
-                            </div>
+          <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-6">
+            <h2 className="mb-3 text-lg font-semibold text-gray-800">{messages.checkout.paymentDetails}</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-sm text-gray-600">{messages.checkout.cardholderName}</label>
+                <input
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  type="text"
+                  placeholder="John Doe"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
 
-                            <div>
-                                <label className="block text-sm text-gray-600 mb-1">
-                                    Card Number
-                                </label>
-                                <input
-                                    name="cardNumber"
-                                    value={form.cardNumber}
-                                    onChange={handleChange}
-                                    type="text"
-                                    placeholder="4242 4242 4242 4242"
-                                    maxLength={19}
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                                />
-                            </div>
+              <div>
+                <label className="mb-1 block text-sm text-gray-600">{messages.checkout.cardNumber}</label>
+                <input
+                  name="cardNumber"
+                  value={form.cardNumber}
+                  onChange={handleChange}
+                  type="text"
+                  placeholder="4242 4242 4242 4242"
+                  maxLength={19}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
 
-                            <div className="flex gap-3">
-                                <div className="w-1/2">
-                                    <label className="block text-sm text-gray-600 mb-1">
-                                        Expiry Date
-                                    </label>
-                                    <input
-                                        name="expiry"
-                                        value={form.expiry}
-                                        onChange={handleChange}
-                                        type="text"
-                                        placeholder="MM/YY"
-                                        maxLength={5}
-                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                                    />
-                                </div>
-                                <div className="w-1/2">
-                                    <label className="block text-sm text-gray-600 mb-1">
-                                        CVV
-                                    </label>
-                                    <input
-                                        name="cvv"
-                                        value={form.cvv}
-                                        onChange={handleChange}
-                                        type="password"
-                                        placeholder="123"
-                                        maxLength={3}
-                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                                    />
-                                </div>
-                            </div>
+              <div className="flex gap-3">
+                <div className="w-1/2">
+                  <label className="mb-1 block text-sm text-gray-600">{messages.checkout.expiryDate}</label>
+                  <input
+                    name="expiry"
+                    value={form.expiry}
+                    onChange={handleChange}
+                    type="text"
+                    placeholder="MM/YY"
+                    maxLength={5}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </div>
+                <div className="w-1/2">
+                  <label className="mb-1 block text-sm text-gray-600">{messages.checkout.cvv}</label>
+                  <input
+                    name="cvv"
+                    value={form.cvv}
+                    onChange={handleChange}
+                    type="password"
+                    placeholder="123"
+                    maxLength={3}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </div>
+              </div>
 
-                            <div>
-                                <label className="block text-sm text-gray-600 mb-1">
-                                    Billing Address
-                                </label>
-                                <input
-                                    name="address"
-                                    value={form.address}
-                                    onChange={handleChange}
-                                    type="text"
-                                    placeholder="123 Main St, City, Country"
-                                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 outline-none"
-                                />
-                            </div>
-                        </div>
-                    </div>
+              <div>
+                <label className="mb-1 block text-sm text-gray-600">{messages.checkout.billingAddress}</label>
+                <input
+                  name="address"
+                  value={form.address}
+                  onChange={handleChange}
+                  type="text"
+                  placeholder="123 Main St, City, Country"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400"
+                />
+              </div>
+            </div>
+          </div>
 
-                    <Button
-                        onClick={handlePay}
-                        disabled={processing}
-                        className="w-full py-3 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-all shadow-md hover:shadow-lg"
-                    >
-                        {processing ? "Redirecting..." : "Pay Now"}
-                    </Button>
+          <Button
+            onClick={handlePay}
+            disabled={processing}
+            className="w-full rounded-xl bg-blue-600 py-3 text-sm font-medium text-white shadow-md transition-all hover:bg-blue-700 hover:shadow-lg"
+          >
+            {processing ? messages.checkout.redirecting : messages.checkout.payNow}
+          </Button>
 
-                    <div className="mt-6 text-center">
-                        <button
-                            onClick={() => (window.location.href = "/")}
-                            className="text-sm text-gray-500 hover:text-gray-700 hover:underline transition-all"
-                        >
-                            ← Back to Plans
-                        </button>
-                    </div>
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => (window.location.href = "/")}
+              className="text-sm text-gray-500 transition-all hover:text-gray-700 hover:underline"
+            >
+              {messages.checkout.backToPlans}
+            </button>
+          </div>
 
-                    <div className="mt-10 text-xs text-gray-400 text-center border-t pt-4">
-                        Secured by{" "}
-                        <span className="font-semibold text-gray-600">
-              Bizon Payment Gateway
-            </span>
-                        <br />
-                        Your transaction is encrypted & protected.
-                    </div>
-                </motion.div>
-            </AnimatePresence>
-        </div>
-    );
+          <div className="mt-10 border-t pt-4 text-center text-xs text-gray-400">
+            {messages.checkout.securedBy}
+            <br />
+            {messages.checkout.encrypted}
+          </div>
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
 }

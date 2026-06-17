@@ -60,6 +60,8 @@ export function AuthModal({ open, mode, onClose, onModeChange }: AuthModalProps)
   const [postCode, setPostCode] = useState('');
   const [agree, setAgree] = useState(false);
   const [errors, setErrors] = useState<{ api?: string }>({});
+  const [showResetForm, setShowResetForm] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
   const [resetMessage, setResetMessage] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -84,7 +86,9 @@ export function AuthModal({ open, mode, onClose, onModeChange }: AuthModalProps)
   const canSubmit = mode === 'signup' ? isSignupFormComplete : isLoginFormComplete;
 
   const requestPasswordReset = async () => {
-    if (!email.trim()) {
+    const targetEmail = (resetEmail || email).trim();
+
+    if (!targetEmail) {
       setErrors({ api: resetCopy.emailRequired });
       return;
     }
@@ -94,7 +98,7 @@ export function AuthModal({ open, mode, onClose, onModeChange }: AuthModalProps)
     setResetMessage("");
 
     try {
-      await axios.post('/api/password-reset/request', { email });
+      await axios.post('/api/password-reset/request', { email: targetEmail });
       setResetMessage(resetCopy.sent);
     } catch {
       setErrors({ api: resetCopy.failed });
@@ -191,14 +195,40 @@ export function AuthModal({ open, mode, onClose, onModeChange }: AuthModalProps)
           {mode === 'login' && (
             <button
               type="button"
-              onClick={requestPasswordReset}
+              onClick={() => {
+                setResetEmail(email);
+                setShowResetForm((value) => !value);
+                setErrors({});
+                setResetMessage("");
+              }}
               disabled={resetLoading}
               className="mt-2 text-xs font-semibold text-accent hover:underline disabled:opacity-60"
             >
-              {resetLoading ? resetCopy.sending : messages.auth.forgotPassword}
+              {messages.auth.forgotPassword}
             </button>
           )}
         </div>
+
+        {mode === 'login' && showResetForm && (
+          <div className="rounded-xl border border-neutral-lines bg-neutral-mist/40 p-3 shadow-sm">
+            <label className="font-medium text-neutral-slate">{messages.auth.email}</label>
+            <input
+              value={resetEmail}
+              onChange={(e) => setResetEmail(e.target.value)}
+              type="email"
+              placeholder={resetCopy.emailRequired}
+              className="mt-1 w-full rounded-lg border border-neutral-lines bg-white px-3 py-2 outline-none ring-accent/50 focus:ring-2"
+            />
+            <button
+              type="button"
+              onClick={requestPasswordReset}
+              disabled={resetLoading}
+              className="mt-3 w-full rounded-xl bg-accent px-4 py-2 font-semibold text-white transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {resetLoading ? resetCopy.sending : messages.auth.forgotPassword}
+            </button>
+          </div>
+        )}
 
         {resetMessage && (
           <div className="rounded-md bg-accent/10 p-3 text-center text-sm text-accent">

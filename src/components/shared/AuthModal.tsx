@@ -27,7 +27,27 @@ function passwordScore(v: string) {
 }
 
 export function AuthModal({ open, mode, onClose, onModeChange }: AuthModalProps) {
-  const { messages } = useI18n();
+  const { locale, messages } = useI18n();
+  const resetCopy = {
+    en: {
+      emailRequired: "Enter your email first.",
+      sending: "Sending reset link...",
+      sent: "If an account exists, a password reset link has been sent.",
+      failed: "Could not send reset link. Please try again.",
+    },
+    es: {
+      emailRequired: "Introduce primero tu correo.",
+      sending: "Enviando enlace...",
+      sent: "Si existe una cuenta, se ha enviado un enlace para restablecer la contraseña.",
+      failed: "No se pudo enviar el enlace. Inténtalo de nuevo.",
+    },
+    de: {
+      emailRequired: "Gib zuerst deine E-Mail ein.",
+      sending: "Reset-Link wird gesendet...",
+      sent: "Falls ein Konto existiert, wurde ein Link zum Zurücksetzen des Passworts gesendet.",
+      failed: "Reset-Link konnte nicht gesendet werden. Bitte versuche es erneut.",
+    },
+  }[locale];
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -40,6 +60,8 @@ export function AuthModal({ open, mode, onClose, onModeChange }: AuthModalProps)
   const [postCode, setPostCode] = useState('');
   const [agree, setAgree] = useState(false);
   const [errors, setErrors] = useState<{ api?: string }>({});
+  const [resetMessage, setResetMessage] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const isLoginFormComplete =
@@ -60,6 +82,26 @@ export function AuthModal({ open, mode, onClose, onModeChange }: AuthModalProps)
     agree;
 
   const canSubmit = mode === 'signup' ? isSignupFormComplete : isLoginFormComplete;
+
+  const requestPasswordReset = async () => {
+    if (!email.trim()) {
+      setErrors({ api: resetCopy.emailRequired });
+      return;
+    }
+
+    setResetLoading(true);
+    setErrors({});
+    setResetMessage("");
+
+    try {
+      await axios.post('/api/password-reset/request', { email });
+      setResetMessage(resetCopy.sent);
+    } catch {
+      setErrors({ api: resetCopy.failed });
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,13 +188,29 @@ export function AuthModal({ open, mode, onClose, onModeChange }: AuthModalProps)
             </div>
             <span>{messages.auth.password}</span>
           </div>
+          {mode === 'login' && (
+            <button
+              type="button"
+              onClick={requestPasswordReset}
+              disabled={resetLoading}
+              className="mt-2 text-xs font-semibold text-accent hover:underline disabled:opacity-60"
+            >
+              {resetLoading ? resetCopy.sending : messages.auth.forgotPassword}
+            </button>
+          )}
         </div>
+
+        {resetMessage && (
+          <div className="rounded-md bg-accent/10 p-3 text-center text-sm text-accent">
+            {resetMessage}
+          </div>
+        )}
 
         {errors.api && (
           <div className="rounded-md bg-status-danger/10 p-3 text-center text-sm text-status-danger">
             {errors.api}
             {errors.api.includes("already registered") && (
-              <button type="button" className="ml-1 font-semibold text-accent hover:underline">
+              <button type="button" onClick={requestPasswordReset} className="ml-1 font-semibold text-accent hover:underline">
                 {messages.auth.forgotPassword}
               </button>
             )}

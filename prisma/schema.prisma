@@ -28,6 +28,7 @@ model User {
   sessions     Session[]
   mealPlans    MealPlan[]
   transactions Transaction[]
+  topUpOrders  TopUpOrder[]
 }
 
 model Account {
@@ -89,4 +90,30 @@ model Transaction {
   source      String?
   externalRef String?  @unique
   createdAt   DateTime @default(now())
+}
+
+model TopUpOrder {
+  id                   String    @id @default(cuid())
+  userId               String
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transfermitPaymentId String?   @unique
+  referenceId          String    @unique
+  amount               Float
+  currency             String
+  planType             String
+  planName             String
+  locale               String?   @default("en")
+  gatewayState         String?
+  normalizedState      String    @default("pending")
+  rawPayload           Json?
+  transactionId        String?
+  completedAt          DateTime?
+  failedAt             DateTime?
+  lastCheckedAt        DateTime?
+  lastError            String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([normalizedState])
 }

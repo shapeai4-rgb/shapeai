@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const completeTopUpMock = vi.fn();
+const createTopUpOrderMock = vi.fn();
+const createTransfermitPaymentMock = vi.fn();
 const getServerSessionMock = vi.fn();
 const getSuccessRedirectMock = vi.fn((tokensAdded: number) => `http://localhost:3000/dashboard?payment_success=true&tokens_added=${tokensAdded}`);
 const isWithoutPaymentEnabledMock = vi.fn();
@@ -22,6 +24,14 @@ vi.mock("@/lib/payment-mode", () => ({
   isWithoutPaymentEnabled: isWithoutPaymentEnabledMock,
 }));
 
+vi.mock("@/lib/top-up-order", () => ({
+  createTopUpOrder: createTopUpOrderMock,
+}));
+
+vi.mock("@/lib/transfermit", () => ({
+  createTransfermitPayment: createTransfermitPaymentMock,
+}));
+
 vi.mock("@/lib/top-up-reference", () => ({
   createTopUpReference: vi.fn(() => "shapeai-topup:test-reference"),
 }));
@@ -29,6 +39,8 @@ vi.mock("@/lib/top-up-reference", () => ({
 describe("POST /api/bizon/create-order", () => {
   beforeEach(() => {
     vi.resetModules();
+    createTopUpOrderMock.mockReset();
+    createTransfermitPaymentMock.mockReset();
     process.env.TRANSFERMIT_API_URL = "https://gateway.test";
     process.env.TRANSFERMIT_API_KEY = "gateway_key";
     process.env.TRANSFERMIT_WEBSITE_URL = "https://shapeai.co.uk";
@@ -78,20 +90,12 @@ describe("POST /api/bizon/create-order", () => {
 
   it("returns a gateway redirect when payment mode is live", async () => {
     isWithoutPaymentEnabledMock.mockReturnValue(false);
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            result: {
-              id: "payment_123",
-              redirectUrl: "https://gateway.test/checkout/payment_123",
-            },
-          }),
-          { status: 200 }
-        )
-      )
-    );
+    createTransfermitPaymentMock.mockResolvedValue({
+      id: "payment_123",
+      redirectUrl: "https://gateway.test/checkout/payment_123",
+      state: "PENDING",
+    });
+    createTopUpOrderMock.mockResolvedValue({ id: "order_123" });
 
     const { POST } = await import("./route");
     const response = await POST(
@@ -108,6 +112,21 @@ describe("POST /api/bizon/create-order", () => {
 
     expect(response.status).toBe(200);
     expect(completeTopUpMock).not.toHaveBeenCalled();
+    expect(createTransfermitPaymentMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pendingReturnUrl: "https://shapeai.co.uk/payment-success?id={id}&ref={referenceId}&state={state}",
+        referenceId: "shapeai-topup:test-reference",
+        webhookUrl: "https://shapeai.co.uk/api/webhooks/transfermit",
+      })
+    );
+    expect(createTopUpOrderMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gatewayState: "PENDING",
+        referenceId: "shapeai-topup:test-reference",
+        transfermitPaymentId: "payment_123",
+        userId: "user_1",
+      })
+    );
     await expect(response.json()).resolves.toMatchObject({
       mode: "gateway",
       redirectUrl: "https://gateway.test/checkout/payment_123",

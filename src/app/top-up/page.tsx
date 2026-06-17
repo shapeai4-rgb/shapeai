@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { StaggeredFadeIn, itemVariants } from "@/components/ui/StaggeredFadeIn";
 import { AnimatedCard } from "@/components/ui/AnimatedCard";
 import { AuthModal } from "@/components/shared/AuthModal";
+import { useI18n } from "@/i18n/client";
 
 // --- Types & Data ---
 type Currency = "EUR" | "GBP" | "USD";
@@ -90,6 +91,7 @@ function TopUpCard({
     isLoggedIn: boolean;
     withoutPayment: boolean;
 }) {
+    const { messages, t } = useI18n();
     const [amount, setAmount] = useState<string>("");
     const [isRedirecting, setIsRedirecting] = useState(false);
 
@@ -123,7 +125,7 @@ function TopUpCard({
         }
 
         if (plan.custom && !valid) {
-            alert("Please enter a valid amount.");
+            alert(messages.topUp.invalidAmount);
             return;
         }
 
@@ -187,7 +189,7 @@ function TopUpCard({
             >
                 {plan.popular && (
                     <div className="absolute -top-2 right-4 rounded-full bg-accent px-2 py-0.5 text-xs text-white">
-                        Most popular
+                        {messages.topUp.mostPopular}
                     </div>
                 )}
 
@@ -198,7 +200,7 @@ function TopUpCard({
 
                 {plan.custom ? (
                     <div className="mt-2">
-                        <label className="text-xs text-neutral-slate">Amount ({symbol})</label>
+                        <label className="text-xs text-neutral-slate">{messages.common.amount} ({symbol})</label>
                         <input
                             inputMode="decimal"
                             placeholder={`${symbol} 12.50`}
@@ -207,7 +209,7 @@ function TopUpCard({
                             className="mt-1 w-full rounded-xl border border-neutral-lines px-3 py-2 text-sm outline-none ring-accent/50 focus:ring-2"
                         />
                         <p className={cn("mt-1 text-xs", valid ? "text-neutral-slate/80" : "text-status-danger")}>
-                            {valid ? "Up to 2 decimals (dot or comma)." : "Please enter a valid amount."}
+                            {valid ? messages.topUp.upToDecimals : messages.topUp.invalidAmount}
                         </p>
 
                         <div className="mt-3 text-2xl font-headings font-semibold">
@@ -221,15 +223,15 @@ function TopUpCard({
                 )}
 
                 {approxTokens != null && (
-                    <div className="mt-1 text-xs text-neutral-slate">≈ {approxTokens.toLocaleString()} tokens</div>
+                    <div className="mt-1 text-xs text-neutral-slate">~ {approxTokens.toLocaleString()} {messages.common.tokens}</div>
                 )}
 
                 <div className="mt-4 text-xs text-neutral-slate">
                     {isLoggedIn
                         ? withoutPayment
-                            ? "Test mode: payment is bypassed and tokens are credited immediately."
-                            : "Proceed to checkout"
-                        : "Sign in to top-up"}
+                            ? messages.topUp.testModeCard
+                            : messages.topUp.proceedCheckout
+                        : messages.topUp.signInToTopUp}
                 </div>
 
                 <Button
@@ -238,16 +240,16 @@ function TopUpCard({
                     className="w-full mt-2 text-sm py-2"
                 >
                     {isRedirecting
-                        ? "Redirecting..."
+                        ? messages.topUp.redirecting
                         : isLoggedIn
                             ? withoutPayment
                                 ? plan.custom
-                                    ? "Credit tokens now"
-                                    : `Credit ${plan.tokens} tokens now`
+                                    ? messages.topUp.creditTokensNow
+                                    : t(messages.topUp.creditTokensValueNow, { count: plan.tokens ?? 0 })
                                 : plan.custom
-                                    ? "Continue to checkout"
-                                    : `Buy ${plan.tokens} tokens`
-                            : "Sign up to continue"}
+                                    ? messages.topUp.continueCheckout
+                                    : t(messages.topUp.buyTokens, { count: plan.tokens ?? 0 })
+                            : messages.topUp.signUpContinue}
                 </Button>
             </article>
         </AnimatedCard>
@@ -256,6 +258,7 @@ function TopUpCard({
 
 // --- Page ---
 export default function TopUpPage() {
+    const { messages } = useI18n();
     const { status } = useSession();
     const isLoggedIn = status === "authenticated";
     const [authMode, setAuthMode] = useState<"login" | "signup" | null>(null);
@@ -267,16 +270,16 @@ export default function TopUpPage() {
                 <StaggeredFadeIn>
                     <motion.div variants={itemVariants} className="text-center">
                         <h1 className="text-3xl/tight md:text-5xl/tight font-headings font-semibold tracking-tight">
-                            Top-up tokens
+                            {messages.topUp.title}
                         </h1>
                         <p className="mt-4 max-w-2xl mx-auto text-neutral-slate md:text-lg">
                             {withoutPayment
-                                ? "TEST MODE: choose a pack or enter a custom amount. Payment is bypassed, tokens are credited immediately, and the PDF invoice is emailed after crediting."
-                                : "Choose a pack or enter a custom amount. Then proceed to checkout to complete your payment securely."}
+                                ? messages.topUp.testModeLead
+                                : messages.topUp.standardLead}
                         </p>
                         {!isPaymentModeLoading && withoutPayment && (
                             <p className="mt-3 inline-flex rounded-full border border-accent/25 bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-accent">
-                                Payment gateway bypass active
+                                {messages.topUp.paymentBypassActive}
                             </p>
                         )}
                     </motion.div>

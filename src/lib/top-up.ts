@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { sendTopUpInvoiceEmail } from "@/lib/invoice-delivery";
 import { calculateTokens, type Currency, type PlanType } from "@/lib/tokenCalculator";
 import { deliverySkipped, type EmailDeliveryResult } from "@/lib/email-delivery-result";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
 
 type TopUpSource = "test-mode" | "transfermit" | "manual" | "free-route";
 
@@ -13,6 +14,7 @@ type CompleteTopUpInput = {
   planName: string;
   source: TopUpSource;
   externalRef: string;
+  locale?: Locale;
   customerEmail?: string | null;
   customerName?: string | null;
 };
@@ -118,16 +120,19 @@ export async function completeTopUp(input: CompleteTopUpInput): Promise<Complete
   });
 
   const delivery = customerEmail
-    ? await sendTopUpInvoiceEmail({
-        amount: input.amount,
-        createdAt: transaction.createdAt,
-        currency: input.currency,
-        customerEmail,
-        customerName,
-        description: transaction.description,
-        tokens: tokensAdded,
-        transactionId: transaction.id,
-      })
+    ? await sendTopUpInvoiceEmail(
+        {
+          amount: input.amount,
+          createdAt: transaction.createdAt,
+          currency: input.currency,
+          customerEmail,
+          customerName,
+          description: transaction.description,
+          tokens: tokensAdded,
+          transactionId: transaction.id,
+        },
+        input.locale ?? DEFAULT_LOCALE
+      )
     : deliverySkipped("Invoice email skipped: customer email is missing.");
 
   return {

@@ -1,65 +1,41 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
-import { parseTopUpReference } from "@/lib/top-up-reference";
-import { completeTopUp } from "@/lib/top-up";
-import type { Currency } from "@/lib/tokenCalculator";
+import { processTransfermitPayment } from "@/lib/top-up-order";
+import { extractTransfermitPayment } from "@/lib/transfermit";
 
 export const runtime = "nodejs";
 
 function verifySignature(body: string, signature: string) {
   const secret = process.env.TRANSFERMIT_WEBHOOK_SECRET!;
   const hash = crypto.createHmac("sha256", secret).update(body).digest("hex");
-  return hash === signature;
+  const normalizedSignature = signature.replace(/^sha256=/i, "").trim();
+
+  if (normalizedSignature.length !== hash.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(normalizedSignature));
 }
 
 export async function POST(req: Request) {
   const rawBody = await req.text();
-  const signature = req.headers.get("x-transfermit-signature") ?? "";
+  const signature = req.headers.get("Signature") ?? req.headers.get("x-transfermit-signature") ?? "";
 
   if (!verifySignature(rawBody, signature)) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
   const event = JSON.parse(rawBody);
-  const payment = event?.payment;
+  const payment = extractTransfermitPayment(event);
 
-  if (!payment || payment.state !== "SUCCESS") {
-    return NextResponse.json({ ok: true });
+  if (!payment) {
+    return NextResponse.json({ error: "Invalid payment payload" }, { status: 400 });
   }
 
-  const referenceId = payment.referenceId as string | undefined;
-  if (!referenceId) {
-    return NextResponse.json({ error: "Missing payment reference" }, { status: 400 });
-  }
+  const result = await processTransfermitPayment(payment, { trigger: "webhook" });
 
-  const reference = parseTopUpReference(referenceId);
-  if (!reference) {
-    return NextResponse.json({ error: "Invalid payment reference" }, { status: 400 });
-  }
-
-  const amount = Number(payment.amount);
-  const currency = payment.currency as Currency;
-  const externalRef =
-    typeof payment.id === "string" && payment.id.trim()
-      ? `transfermit:${payment.id}`
-      : `transfermit:${referenceId}`;
-
-  const completion = await completeTopUp({
-    amount: Number.isFinite(amount) && amount > 0 ? amount : reference.amount,
-    currency: typeof currency === "string" ? currency : reference.currency,
-    externalRef,
-    planName: reference.planName,
-    planType: reference.planType,
-    source: "transfermit",
-    userId: reference.userId,
+  return NextResponse.json({
+    ok: true,
+    status: result.normalizedState,
   });
-
-  console.info("[TOPUP][TRANSFERMIT] Completion result:", {
-    delivery: completion.delivery,
-    duplicate: completion.duplicate,
-    externalRef,
-    transactionId: completion.transactionId,
-  });
-
-  return NextResponse.json({ ok: true });
 }

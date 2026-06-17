@@ -5,12 +5,13 @@ import { authOptions } from "@/lib/auth";
 import { completeTopUp, getTopUpSuccessRedirect } from "@/lib/top-up";
 import { isWithoutPaymentEnabled } from "@/lib/payment-mode";
 import { createTopUpReference } from "@/lib/top-up-reference";
+import { createTopUpOrder } from "@/lib/top-up-order";
+import { createTransfermitPayment } from "@/lib/transfermit";
 import type { Currency, PlanType } from "@/lib/tokenCalculator";
+import { getLocaleFromRequest } from "@/i18n/server";
 
 export const runtime = "nodejs";
 
-const TM_API_URL = process.env.TRANSFERMIT_API_URL!;
-const TM_API_KEY = process.env.TRANSFERMIT_API_KEY!;
 const SITE_URL = process.env.TRANSFERMIT_WEBSITE_URL!;
 const SUCCESS_URL = process.env.TRANSFERMIT_SUCCESS_URL!;
 const DECLINE_URL = process.env.TRANSFERMIT_DECLINE_URL!;
@@ -33,6 +34,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
+    const locale = getLocaleFromRequest(req);
     const amount = Number(body.amount);
     const currency = (body.currency ?? "EUR") as Currency;
     const planType = body.planType;
@@ -54,6 +56,7 @@ export async function POST(req: Request) {
         customerEmail: session.user.email,
         customerName: session.user.name,
         externalRef,
+        locale,
         planName,
         planType,
         source: "test-mode",
@@ -76,6 +79,7 @@ export async function POST(req: Request) {
     const referenceId = createTopUpReference({
       amount,
       currency,
+      locale,
       nonce: crypto.randomBytes(6).toString("hex"),
       planName,
       planType,
@@ -90,11 +94,12 @@ export async function POST(req: Request) {
         firstName: session.user.name ?? "User",
         ip: getClientIp(req),
         lastName: "Client",
-        locale: "en",
+        locale,
         referenceId: `USER_${session.user.id}`,
       },
       declineReturnUrl: `${DECLINE_URL}?id={id}&ref={referenceId}&state={state}`,
       description: `Top-up: ${planName}`,
+      pendingReturnUrl: `${SUCCESS_URL}?id={id}&ref={referenceId}&state={state}`,
       paymentMethod: "BASIC_CARD",
       paymentType: "DEPOSIT",
       referenceId,
@@ -103,22 +108,31 @@ export async function POST(req: Request) {
       websiteUrl: SITE_URL.replace(/\/+$/, ""),
     };
 
-    const res = await fetch(`${TM_API_URL}/payments`, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${TM_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+    const payment = await createTransfermitPayment(payload);
 
-    const data = await res.json();
-    const payment = data?.result ?? data;
-
-    if (!res.ok || !payment?.redirectUrl) {
+    if (!payment.redirectUrl || typeof payment.redirectUrl !== "string") {
       return NextResponse.json({ error: "Gateway error" }, { status: 502 });
     }
+
+    await createTopUpOrder({
+      amount,
+      currency,
+      gatewayState: typeof payment.state === "string" ? payment.state : null,
+      locale,
+      planName,
+      planType,
+      rawPayload: payment,
+      referenceId,
+      transfermitPaymentId: typeof payment.id === "string" ? payment.id : null,
+      userId: session.user.id,
+    });
+
+    console.info("[TOPUP][TRANSFERMIT] Order created:", {
+      gatewayState: payment.state,
+      paymentId: payment.id,
+      referenceId,
+      userId: session.user.id,
+    });
 
     return NextResponse.json({
       mode: "gateway",

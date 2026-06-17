@@ -16,6 +16,7 @@ import { GeneratorPanel } from "@/components/shared/GeneratorPanel";
 import { ContactForm } from "@/components/shared/ContactForm";
 import { type GeneratorFormData } from "@/types";
 import { usePaymentMode } from "@/lib/use-payment-mode";
+import { useI18n } from "@/i18n/client";
 
 type Currency = "EUR" | "GBP" | "USD";
 type TopUpPlan = {
@@ -74,6 +75,24 @@ const MOCK_RECIPES: Recipe[] = [
   },
 ];
 
+const LOCALIZED_RECIPE_TEXT: Record<string, Array<Pick<Recipe, "title" | "portion" | "time">>> = {
+  en: [
+    { title: "Greek Chicken Bowl", portion: "1 bowl (380 g)", time: "20-25 min" },
+    { title: "Steamed Salmon with Veg", portion: "1 serving (300 g)", time: "18-22 min" },
+    { title: "Overnight Oats Protein Pudding", portion: "1 cup (260 g)", time: "10-15 min" },
+  ],
+  es: [
+    { title: "Bowl griego de pollo", portion: "1 bowl (380 g)", time: "20-25 min" },
+    { title: "Salmón al vapor con verduras", portion: "1 ración (300 g)", time: "18-22 min" },
+    { title: "Pudin proteico de avena nocturna", portion: "1 taza (260 g)", time: "10-15 min" },
+  ],
+  de: [
+    { title: "Griechische Hähnchen-Bowl", portion: "1 Bowl (380 g)", time: "20-25 Min." },
+    { title: "Gedämpfter Lachs mit Gemüse", portion: "1 Portion (300 g)", time: "18-22 Min." },
+    { title: "Protein-Pudding mit Overnight Oats", portion: "1 Tasse (260 g)", time: "10-15 Min." },
+  ],
+};
+
 const STEP_ITEMS = [
   {
     title: "Brief",
@@ -105,25 +124,6 @@ const STEP_ITEMS = [
   },
 ];
 
-const FAQ = [
-  {
-    q: "How accurate are calories?",
-    a: "We use BMR/TDEE with a safe deficit. You can inspect and adjust assumptions in the calculation popover.",
-  },
-  {
-    q: "Can I swap meals?",
-    a: "Yes. Each meal has 2-3 isocaloric alternatives with similar macros.",
-  },
-  {
-    q: "GLP-1 mode available?",
-    a: "Yes - smaller portions, higher protein, and gentle texture tips plus hydration reminders.",
-  },
-  {
-    q: "How do I get the PDF?",
-    a: "Sign up, generate your plan, and download the 7-day PDF from your saved plan.",
-  },
-];
-
 const FX_EUR_GBP = 0.85;
 const FX_EUR_USD = 1.17;
 
@@ -148,6 +148,7 @@ function normalizeAmount(input: string) {
 }
 
 function TopUpCard({ plan, onSelect, isLoggedIn, withoutPayment }: { plan: TopUpPlan; onSelect: () => void; isLoggedIn: boolean; withoutPayment: boolean }) {
+  const { messages, t } = useI18n();
   const [amount, setAmount] = useState<string>("");
   const [isRedirecting, setIsRedirecting] = useState(false);
   const currency = useAppStore((state) => state.currency);
@@ -216,7 +217,7 @@ function TopUpCard({ plan, onSelect, isLoggedIn, withoutPayment }: { plan: TopUp
         </div>
         {plan.custom ? (
           <div className="mt-2">
-            <label className="text-xs text-neutral-slate">Amount ({symbol})</label>
+            <label className="text-xs text-neutral-slate">{messages.common.amount} ({symbol})</label>
             <input
               inputMode="decimal"
               placeholder={`${symbol} 12.50`}
@@ -225,28 +226,28 @@ function TopUpCard({ plan, onSelect, isLoggedIn, withoutPayment }: { plan: TopUp
               className="mt-1 w-full rounded-xl border border-neutral-lines px-3 py-2 text-sm outline-none ring-accent/50 focus:ring-2"
             />
             <p className={cn("mt-1 text-xs", valid ? "text-neutral-slate/80" : "text-status-danger")}>
-              {valid ? "Up to 2 decimals (dot or comma)." : "Please enter a valid amount."}
+              {valid ? messages.topUp.upToDecimals : messages.topUp.invalidAmount}
             </p>
           </div>
         ) : (
           <div className="mt-2 text-2xl font-headings font-semibold">{formatCurrency(currency, priceInSelected ?? 0)}</div>
         )}
-        {plan.tokens && <div className="mt-1 text-xs text-neutral-slate">~ {plan.tokens.toLocaleString()} tokens</div>}
+        {plan.tokens && <div className="mt-1 text-xs text-neutral-slate">~ {plan.tokens.toLocaleString()} {messages.common.tokens}</div>}
         <div className="mt-4 text-xs text-neutral-slate">
           {isLoggedIn
             ? withoutPayment
-              ? "Test mode: payment is bypassed and tokens are credited immediately."
-              : "Proceed to checkout"
-            : "Sign in to top up"}
+              ? messages.topUp.testModeCard
+              : messages.topUp.proceedCheckout
+            : messages.topUp.signInToTopUp}
         </div>
         <Button onClick={handleCheckout} locked={plan.custom && !valid} disabled={isRedirecting} className="w-full mt-2 text-sm py-2">
           {isRedirecting
-            ? "Redirecting..."
+            ? messages.topUp.redirecting
             : isLoggedIn
               ? withoutPayment
-                ? `Credit ${formatCurrency(currency, priceInSelected ?? 0)} now`
+                ? t(messages.topUp.creditAmountNow, { amount: formatCurrency(currency, priceInSelected ?? 0) })
                 : `Top-up ${formatCurrency(currency, priceInSelected ?? 0)}`
-              : "Sign up to top up"}
+              : messages.topUp.signUpContinue}
         </Button>
       </article>
     </AnimatedCard>
@@ -281,13 +282,17 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 export default function HomePage() {
+  const { locale, messages } = useI18n();
   const { status } = useSession();
   const isLoggedIn = status === "authenticated";
   const { isLoading: isPaymentModeLoading, withoutPayment } = usePaymentMode();
   const [loading, setLoading] = useState(false);
-  const [preview, setPreview] = useState<Recipe[] | null>(MOCK_RECIPES);
   const [authMode, setAuthMode] = useState<"login" | "signup" | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  const localizedPreview = MOCK_RECIPES.map((recipe, index) => ({
+    ...recipe,
+    ...(LOCALIZED_RECIPE_TEXT[locale]?.[index] ?? {}),
+  }));
 
   const handleGenerate = async (formData: GeneratorFormData) => {
     setLoading(true);
@@ -296,7 +301,7 @@ export default function HomePage() {
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, locale }),
       });
 
       if (!response.ok) {
@@ -316,7 +321,6 @@ export default function HomePage() {
     } catch (error) {
       console.error("Failed to generate plan:", error);
       alert("An error occurred while generating the plan.");
-      setPreview(MOCK_RECIPES);
       setLoading(false);
     }
   };
@@ -331,10 +335,10 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
           <StaggeredFadeIn>
             <motion.h1 variants={itemVariants} className="text-3xl/tight md:text-5xl/tight font-headings font-semibold tracking-tight">
-              Your personal <span className="text-accent">weight loss</span> meal plan - in 30 seconds
+              {messages.home.hero}
             </motion.h1>
             <motion.p variants={itemVariants} className="mt-4 text-neutral-slate md:text-lg">
-              Describe your habits and goals, pick dietary limits, and generate a <span className="font-semibold text-neutral-ink">7-day PDF</span> with a shopping list and meal guidance.
+              {messages.home.heroLead}
             </motion.p>
             <motion.div variants={itemVariants} className="mt-6">
               <GeneratorPanel onGenerate={handleGenerate} loading={loading} onAuth={() => setAuthMode("signup")} />
@@ -342,14 +346,14 @@ export default function HomePage() {
           </StaggeredFadeIn>
 
           <div aria-labelledby="preview-title" ref={previewRef}>
-            <h2 id="preview-title" className="sr-only">Plan preview</h2>
+            <h2 id="preview-title" className="sr-only">{messages.home.planPreview}</h2>
             <StaggeredFadeIn className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {loading && [...Array(4)].map((_, i) => (
                 <motion.div variants={itemVariants} key={i}>
                   <SkeletonCard />
                 </motion.div>
               ))}
-              {!loading && preview && preview.map((r) => (
+              {!loading && localizedPreview.map((r) => (
                 <motion.div variants={itemVariants} key={r.id}>
                   <AnimatedCard>
                     <RecipeCard r={r} />
@@ -364,17 +368,17 @@ export default function HomePage() {
       <section id="how" className="mx-auto max-w-7xl px-4 pb-6 md:pb-10">
         <StaggeredFadeIn>
           <motion.div variants={itemVariants} className="rounded-3xl border border-neutral-lines bg-white p-6 md:p-8 shadow-soft">
-            <h2 className="text-xl md:text-2xl font-headings font-semibold">How it works</h2>
+            <h2 className="text-xl md:text-2xl font-headings font-semibold">{messages.home.howItWorks}</h2>
             <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-              {STEP_ITEMS.map((s) => (
+              {STEP_ITEMS.map((s, index) => (
                 <motion.div variants={itemVariants} key={s.title}>
                   <AnimatedCard className="h-full">
                     <div className="rounded-card border border-neutral-lines p-5 h-full flex flex-col">
                       <div className="flex items-center gap-3">
                         <div className="flex size-10 items-center justify-center rounded-lg bg-accent-mint/50 text-accent">{s.icon}</div>
-                        <div className="font-headings font-semibold">{s.title}</div>
+                        <div className="font-headings font-semibold">{messages.home.steps[index]?.[0] ?? s.title}</div>
                       </div>
-                      <p className="mt-3 text-sm text-neutral-slate">{s.desc}</p>
+                      <p className="mt-3 text-sm text-neutral-slate">{messages.home.steps[index]?.[1] ?? s.desc}</p>
                     </div>
                   </AnimatedCard>
                 </motion.div>
@@ -387,15 +391,15 @@ export default function HomePage() {
       <section id="topup" className="mx-auto max-w-7xl px-4 py-10">
         <StaggeredFadeIn>
           <motion.div variants={itemVariants} className="rounded-3xl border border-neutral-lines bg-white p-6 md:p-8 shadow-soft">
-            <h2 className="text-xl md:text-2xl font-headings font-semibold">Top-up tokens</h2>
+            <h2 className="text-xl md:text-2xl font-headings font-semibold">{messages.home.topUpTokens}</h2>
             <p className="mt-1 text-sm text-neutral-slate">
               {withoutPayment
-                ? "TEST MODE: payment is bypassed, tokens are credited immediately, and the PDF invoice is emailed after crediting."
-                : "Choose a pack or enter a custom amount. Sign-in required to complete top-up."}
+                ? messages.home.testModeCopy
+                : messages.home.topUpCopy}
             </p>
             {!isPaymentModeLoading && withoutPayment && (
               <p className="mt-3 inline-flex rounded-full border border-accent/25 bg-accent/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-accent">
-                Payment gateway bypass active
+                {messages.home.paymentBypassActive}
               </p>
             )}
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -411,9 +415,9 @@ export default function HomePage() {
 
       <section id="faq" className="mx-auto max-w-7xl px-4 py-12">
         <StaggeredFadeIn className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <motion.h2 variants={itemVariants} className="text-xl md:text-2xl font-headings font-semibold col-span-full">FAQ</motion.h2>
-          {FAQ.map((f) => (
-            <FaqItem key={f.q} q={f.q} a={f.a} />
+          <motion.h2 variants={itemVariants} className="text-xl md:text-2xl font-headings font-semibold col-span-full">{messages.common.faq}</motion.h2>
+          {messages.home.faq.map((f) => (
+            <FaqItem key={f[0]} q={f[0]} a={f[1]} />
           ))}
         </StaggeredFadeIn>
       </section>
@@ -421,9 +425,9 @@ export default function HomePage() {
       <section id="contact-home" className="mx-auto max-w-7xl px-4 py-12 md:py-20">
         <StaggeredFadeIn>
           <motion.div variants={itemVariants} className="rounded-3xl border border-neutral-lines bg-white p-6 md:p-8 shadow-soft max-w-3xl mx-auto">
-            <h2 className="text-xl md:text-2xl font-headings font-semibold text-center">Get in Touch</h2>
+            <h2 className="text-xl md:text-2xl font-headings font-semibold text-center">{messages.home.contactTitle}</h2>
             <p className="mt-2 text-sm text-neutral-slate text-center">
-              Have questions or feedback? Fill out the form below.
+              {messages.home.contactLead}
             </p>
             <div className="mt-6">
               <ContactForm />

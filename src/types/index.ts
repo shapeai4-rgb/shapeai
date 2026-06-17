@@ -1,3 +1,5 @@
+import type { Locale } from "@/i18n/config";
+
 export type Macro = {
   protein: number;
   fat: number;
@@ -56,6 +58,7 @@ export type Currency = 'EUR' | 'GBP' | 'USD';
 export type GeneratorFormData = {
   freeText: string;
   days: number;
+  locale?: Locale;
   goals: Record<string, unknown>;
   structure: Record<string, unknown>;
   diet: Record<string, unknown>;

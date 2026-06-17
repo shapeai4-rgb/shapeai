@@ -4,6 +4,9 @@ import "./globals.css";
 import AuthProvider from "@/components/providers/AuthProvider";
 import { Header } from "@/components/shared/Header";
 import { Footer } from "@/components/shared/Footer";
+import { cookies } from "next/headers";
+import { I18nProvider } from "@/i18n/client";
+import { LOCALE_COOKIE, normalizeLocale } from "@/i18n/config";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -33,23 +36,28 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const initialLocale = normalizeLocale(cookieStore.get(LOCALE_COOKIE)?.value);
+
   return (
-    <html lang="en">
+    <html lang={initialLocale}>
       <head>
         <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
         <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
       </head>
       <body className={inter.className}>
-        <AuthProvider>
-          <Header />
-          <main>{children}</main>
-          <Footer />
-        </AuthProvider>
+        <I18nProvider initialLocale={initialLocale}>
+          <AuthProvider>
+            <Header />
+            <main>{children}</main>
+            <Footer />
+          </AuthProvider>
+        </I18nProvider>
       </body>
     </html>
   );

@@ -19,6 +19,8 @@ import { Dropdown } from '@/components/ui/Dropdown';
 import { Drawer } from '@/components/ui/Drawer';
 import { PlanCard } from '@/components/shared/PlanCard';
 import { StaggeredFadeIn, itemVariants } from '@/components/ui/StaggeredFadeIn';
+import { useI18n } from '@/i18n/client';
+import { DATE_LOCALES } from '@/i18n/config';
 
 type Transaction = {
   id: string;
@@ -31,6 +33,7 @@ type Transaction = {
 };
 
 function PaymentRedirectHandler() {
+  const { messages } = useI18n();
   const searchParams = useSearchParams();
   const { update } = useSession();
   const router = useRouter();
@@ -57,7 +60,7 @@ function PaymentRedirectHandler() {
   if (searchParams.get('payment_success') === 'true') {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        Finalizing your purchase...
+        {messages.dashboard.finalizingPurchase}
       </div>
     );
   }
@@ -66,6 +69,7 @@ function PaymentRedirectHandler() {
 }
 
 function TokenPill({ balance }: { balance: number }) {
+  const { messages, t } = useI18n();
   const used = 0;
 
   return (
@@ -76,12 +80,12 @@ function TokenPill({ balance }: { balance: number }) {
         <div className="relative text-xs font-semibold">{balance}</div>
       </div>
       <div>
-        <div className="font-headings font-medium leading-none">Tokens: {balance}</div>
-        <div className="mt-0.5 text-xs text-accent/80">{used} used this month</div>
+        <div className="font-headings font-medium leading-none">{t(messages.dashboard.tokensLabel, { count: balance })}</div>
+        <div className="mt-0.5 text-xs text-accent/80">{t(messages.dashboard.usedThisMonth, { count: used })}</div>
       </div>
       <Link href="/top-up">
         <Button className="ml-auto h-auto border border-accent/30 bg-white px-3 py-1.5 text-sm text-accent hover:bg-accent/10">
-          Get tokens
+          {messages.header.getTokens}
         </Button>
       </Link>
     </div>
@@ -89,6 +93,7 @@ function TokenPill({ balance }: { balance: number }) {
 }
 
 function DashboardClient() {
+  const { locale, messages, t } = useI18n();
   const { data: session, status } = useSession();
   const [plans, setPlans] = useState<Plan[] | null>(null);
   const [transactions, setTransactions] = useState<Transaction[] | null>(null);
@@ -149,7 +154,7 @@ function DashboardClient() {
   const isLoadingTransactions = status === 'authenticated' && transactions === null;
 
   if (status === 'loading') {
-    return <div className="flex min-h-screen items-center justify-center">Loading session...</div>;
+    return <div className="flex min-h-screen items-center justify-center">{messages.dashboard.loadingSession}</div>;
   }
 
   return (
@@ -161,10 +166,10 @@ function DashboardClient() {
         >
           <div>
             <h1 className="font-headings text-2xl font-semibold tracking-tight md:text-3xl">
-              Hello, {session?.user?.name || 'User'}
+              {t(messages.dashboard.hello, { name: session?.user?.name || messages.common.user })}
             </h1>
             <p className="mt-1 text-sm text-neutral-slate">
-              Welcome back. Manage your plans and preferences here.
+              {messages.dashboard.welcome}
             </p>
           </div>
           <TokenPill balance={session?.user?.tokenBalance ?? 0} />
@@ -172,7 +177,7 @@ function DashboardClient() {
 
         <motion.div variants={itemVariants} className="mt-4">
           <Link href="/">
-            <Button>Create new plan</Button>
+            <Button>{messages.dashboard.createNewPlan}</Button>
           </Link>
         </motion.div>
 
@@ -194,12 +199,12 @@ function DashboardClient() {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search plans..."
+              placeholder={messages.dashboard.searchPlans}
               className="w-full bg-transparent text-sm outline-none"
             />
           </div>
           <Dropdown
-            label="Status"
+            label={messages.dashboard.status}
             value={filterStatus}
             options={['All', 'Active', 'Draft', 'Archived']}
             onChange={(value) =>
@@ -223,13 +228,13 @@ function DashboardClient() {
         </motion.div>
 
         <motion.div variants={itemVariants} className="mt-8">
-          <h2 className="mb-4 font-headings text-xl font-semibold">Transaction History</h2>
+          <h2 className="mb-4 font-headings text-xl font-semibold">{messages.dashboard.transactionHistory}</h2>
           <div className="overflow-hidden rounded-card border border-neutral-lines bg-white">
             {isLoadingTransactions ? (
-              <div className="p-8 text-center">Loading transactions...</div>
+              <div className="p-8 text-center">{messages.dashboard.loadingTransactions}</div>
             ) : (transactions ?? []).length === 0 ? (
               <div className="p-8 text-center text-neutral-slate">
-                No transactions yet. Your transaction history will appear here.
+                {messages.dashboard.noTransactions}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -237,16 +242,16 @@ function DashboardClient() {
                   <thead className="bg-neutral-lines/20">
                     <tr>
                       <th className="px-4 py-3 text-left text-sm font-medium text-neutral-slate">
-                        Date
+                        {messages.common.date}
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-neutral-slate">
-                        Action
+                        {messages.dashboard.action}
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-neutral-slate">
-                        Token Amount
+                        {messages.dashboard.tokenAmount}
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-neutral-slate">
-                        Amount
+                        {messages.dashboard.amount}
                       </th>
                     </tr>
                   </thead>
@@ -254,7 +259,7 @@ function DashboardClient() {
                     {(transactions ?? []).map((transaction) => (
                       <tr key={transaction.id} className="hover:bg-neutral-lines/10">
                         <td className="px-4 py-3 text-sm text-neutral-slate">
-                          {new Date(transaction.createdAt).toLocaleDateString('en-US', {
+                          {new Date(transaction.createdAt).toLocaleDateString(DATE_LOCALES[locale], {
                             year: 'numeric',
                             month: 'short',
                             day: 'numeric',
@@ -270,7 +275,7 @@ function DashboardClient() {
                                 : 'bg-red-100 text-red-800'
                             }`}
                           >
-                            {transaction.action === 'topup' ? 'Top-up' : 'Spend'}
+                            {transaction.action === 'topup' ? messages.dashboard.topUp : messages.dashboard.spend}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-sm font-medium">
@@ -310,16 +315,16 @@ function DashboardClient() {
 
         <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
           {isLoadingPlans ? (
-            <div className="p-8 text-center md:col-span-2">Loading plans...</div>
+            <div className="p-8 text-center md:col-span-2">{messages.dashboard.loadingPlans}</div>
           ) : filteredPlans.length === 0 ? (
             <motion.div variants={itemVariants} className="md:col-span-2">
               <div className="rounded-card border border-dashed border-neutral-lines bg-white/50 p-8 text-center">
-                <h3 className="font-headings text-lg font-semibold">No plans found</h3>
+                <h3 className="font-headings text-lg font-semibold">{messages.dashboard.noPlans}</h3>
                 <p className="mt-1 text-sm text-neutral-slate">
-                  Generate your first personalized plan to see it here.
+                  {messages.dashboard.noPlansLead}
                 </p>
                 <Link href="/">
-                  <Button className="mt-4">Create new plan</Button>
+                  <Button className="mt-4">{messages.dashboard.createNewPlan}</Button>
                 </Link>
               </div>
             </motion.div>
@@ -336,9 +341,9 @@ function DashboardClient() {
       <Drawer
         open={Boolean(shopFor)}
         onClose={() => setShopFor(null)}
-        title={shopFor ? `Shopping list - ${shopFor.title}` : 'Shopping list'}
+        title={shopFor ? `${messages.common.shoppingList} - ${shopFor.title}` : messages.common.shoppingList}
       >
-        <p>Shopping list content for {shopFor?.title} will go here...</p>
+        <p>{t(messages.dashboard.shoppingListContent, { title: shopFor?.title ?? "" })}</p>
       </Drawer>
     </StaggeredFadeIn>
   );

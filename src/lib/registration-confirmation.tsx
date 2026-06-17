@@ -2,6 +2,9 @@ import { render } from "@react-email/render";
 import { Resend } from "resend";
 import { RegistrationConfirmationEmail } from "@/components/emails/RegistrationConfirmationEmail";
 import { deliverySkipped, type EmailDeliveryResult } from "@/lib/email-delivery-result";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
+import { formatLocalizedDateTime } from "@/i18n/server";
+import { formatMessage, getMessages } from "@/i18n/messages";
 
 const DEFAULT_APP_URL = "https://shapeai.co.uk";
 const SUPPORT_EMAIL = "info@shapeai.co.uk";
@@ -31,41 +34,33 @@ function getFirstName(user: RegistrationConfirmationUser) {
   return "there";
 }
 
-function formatCreatedAt(date: Date) {
-  return date.toLocaleString("en-GB", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function buildWelcomeText(user: RegistrationConfirmationUser, createdAt: Date) {
+function buildWelcomeText(user: RegistrationConfirmationUser, createdAt: Date, locale: Locale) {
   const appUrl = getAppUrl();
   const firstName = getFirstName(user);
   const dashboardUrl = `${appUrl}/dashboard`;
-  const createdAtLabel = formatCreatedAt(createdAt);
+  const createdAtLabel = formatLocalizedDateTime(createdAt, locale);
   const tokenBalance = user.tokenBalance ?? 10;
+  const m = getMessages(locale).email.registration;
 
   return [
-    `Hi ${firstName},`,
+    formatMessage("Hi {name},", { name: firstName }),
     "",
-    "Your ShapeAI account is now active.",
+    m.created,
     "",
-    `Registered email: ${user.email}`,
-    `Starting balance: ${tokenBalance} tokens`,
-    `Registered on: ${createdAtLabel}`,
+    `${m.registeredEmail}: ${user.email}`,
+    `${m.startingBalance}: ${tokenBalance} tokens`,
+    `${m.registeredOn}: ${createdAtLabel}`,
     "",
-    `Open your dashboard: ${dashboardUrl}`,
+    `${m.dashboard}: ${dashboardUrl}`,
     "",
-    `If this was not you, contact ${SUPPORT_EMAIL} immediately.`,
+    formatMessage(m.footer, { email: SUPPORT_EMAIL }),
   ].join("\n");
 }
 
 export async function sendWelcomeEmail(
   user: RegistrationConfirmationUser,
-  createdAt = new Date()
+  createdAt = new Date(),
+  locale: Locale = DEFAULT_LOCALE
 ) : Promise<EmailDeliveryResult> {
   if (!process.env.RESEND_API_KEY) {
     console.warn("Welcome email skipped: RESEND_API_KEY is not configured.");
@@ -76,6 +71,7 @@ export async function sendWelcomeEmail(
   const firstName = getFirstName(user);
   const tokenBalance = user.tokenBalance ?? 10;
   const dashboardUrl = `${appUrl}/dashboard`;
+  const m = getMessages(locale).email.registration;
 
   try {
     const html = await render(
@@ -83,6 +79,7 @@ export async function sendWelcomeEmail(
         dashboardUrl,
         email: user.email,
         firstName,
+        locale,
         supportEmail: SUPPORT_EMAIL,
         tokenBalance,
       })
@@ -93,8 +90,8 @@ export async function sendWelcomeEmail(
       from: `ShapeAI Accounts <${getFromAddress()}>`,
       html,
       replyTo: SUPPORT_EMAIL,
-      subject: "Your ShapeAI account is active",
-      text: buildWelcomeText(user, createdAt),
+      subject: m.subject,
+      text: buildWelcomeText(user, createdAt, locale),
       to: [user.email],
     });
 

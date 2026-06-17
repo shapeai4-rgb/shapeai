@@ -10,11 +10,14 @@ import {
   Section,
   Text,
 } from "@react-email/components";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
+import { formatMessage, getMessages } from "@/i18n/messages";
 
 type TopUpInvoiceEmailProps = {
   customerName: string;
   amountLabel: string;
   invoiceNumber: string;
+  locale?: Locale;
   transactionId: string;
 };
 
@@ -22,12 +25,15 @@ export function TopUpInvoiceEmail({
   customerName,
   amountLabel,
   invoiceNumber,
+  locale = DEFAULT_LOCALE,
   transactionId,
 }: TopUpInvoiceEmailProps) {
+  const m = getMessages(locale).email.invoice;
+
   return (
     <Html>
       <Head />
-      <Preview>Your ShapeAI invoice is attached.</Preview>
+      <Preview>{m.attached}</Preview>
       <Body style={{ backgroundColor: "#ECFDF5", fontFamily: "Arial, sans-serif", margin: 0, padding: "32px 16px" }}>
         <Container
           style={{
@@ -54,23 +60,22 @@ export function TopUpInvoiceEmail({
                 textTransform: "uppercase",
               }}
             >
-              Paid top-up
+              {m.paidTopUp}
             </Text>
             <Heading as="h1" style={{ color: "#FFFFFF", fontSize: "32px", fontWeight: 800, lineHeight: "1.15", margin: "18px 0 12px" }}>
-              Your ShapeAI invoice is ready.
+              {m.ready}
             </Heading>
             <Text style={{ color: "rgba(255,255,255,0.88)", fontSize: "16px", lineHeight: "1.7", margin: 0 }}>
-              We have attached the PDF invoice for your successful token purchase.
+              {m.attached}
             </Text>
           </Section>
 
           <Section style={{ padding: "32px 40px" }}>
             <Text style={{ color: "#0F172A", fontSize: "15px", lineHeight: "1.7", margin: "0 0 16px" }}>
-              Hi {customerName},
+              {formatMessage(m.greeting, { name: customerName })}
             </Text>
             <Text style={{ color: "#334155", fontSize: "15px", lineHeight: "1.7", margin: "0 0 20px" }}>
-              Your payment was completed successfully. The attached invoice covers a
-              top-up totalling {amountLabel}.
+              {formatMessage(m.paymentCompleted, { amount: amountLabel })}
             </Text>
 
             <div
@@ -82,19 +87,19 @@ export function TopUpInvoiceEmail({
               }}
             >
               <Text style={{ color: "#475569", fontSize: "12px", fontWeight: 700, letterSpacing: "0.08em", margin: "0 0 8px", textTransform: "uppercase" }}>
-                Invoice details
+                {m.details}
               </Text>
               <Text style={{ color: "#0F172A", fontSize: "16px", fontWeight: 800, margin: "0 0 6px" }}>
                 {invoiceNumber}
               </Text>
               <Text style={{ color: "#475569", fontSize: "14px", lineHeight: "1.6", margin: 0 }}>
-                Transaction reference: {transactionId}
+                {m.transactionRef}: {transactionId}
               </Text>
             </div>
 
             <Hr style={{ borderColor: "#E5E7EB", margin: "24px 0 18px" }} />
             <Text style={{ color: "#64748B", fontSize: "13px", lineHeight: "1.7", margin: 0 }}>
-              If you have any billing questions, contact info@shapeai.co.uk.
+              {m.billingQuestions}
             </Text>
           </Section>
         </Container>

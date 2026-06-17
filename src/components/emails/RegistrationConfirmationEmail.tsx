@@ -11,12 +11,15 @@ import {
   Section,
   Text,
 } from "@react-email/components";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
+import { formatMessage, getMessages } from "@/i18n/messages";
 
 type RegistrationConfirmationEmailProps = {
   firstName: string;
   email: string;
   tokenBalance: number;
   dashboardUrl: string;
+  locale?: Locale;
   supportEmail: string;
 };
 
@@ -95,16 +98,19 @@ export function RegistrationConfirmationEmail({
   email,
   tokenBalance,
   dashboardUrl,
+  locale = DEFAULT_LOCALE,
   supportEmail,
 }: RegistrationConfirmationEmailProps) {
+  const m = getMessages(locale).email.registration;
+
   return (
     <Html>
       <Head />
-      <Preview>Your ShapeAI account is now active.</Preview>
+      <Preview>{m.created}</Preview>
       <Body style={shell}>
         <Container style={card}>
           <Section style={hero}>
-            <Text style={badge}>Welcome to ShapeAI</Text>
+            <Text style={badge}>{m.welcome}</Text>
             <Heading
               as="h1"
               style={{
@@ -115,7 +121,7 @@ export function RegistrationConfirmationEmail({
                 margin: "18px 0 12px",
               }}
             >
-              Your account is ready, {firstName}.
+              {formatMessage(m.accountReady, { name: firstName })}
             </Heading>
             <Text
               style={{
@@ -126,25 +132,24 @@ export function RegistrationConfirmationEmail({
                 maxWidth: "520px",
               }}
             >
-              Registration completed successfully. You can now sign in and access
-              your dashboard.
+              {m.body}
             </Text>
           </Section>
 
           <Section style={section}>
             <div style={{ display: "grid", gap: "16px", marginBottom: "28px" }}>
               <div style={statCard}>
-                <Text style={statLabel}>Account status</Text>
-                <Text style={statValue}>Active</Text>
+                <Text style={statLabel}>{m.accountStatus}</Text>
+                <Text style={statValue}>{m.active}</Text>
               </div>
               <div style={statCard}>
-                <Text style={statLabel}>Registered email</Text>
+                <Text style={statLabel}>{m.registeredEmail}</Text>
                 <Text style={{ ...statValue, fontSize: "18px", wordBreak: "break-word" as const }}>
                   {email}
                 </Text>
               </div>
               <div style={statCard}>
-                <Text style={statLabel}>Starting balance</Text>
+                <Text style={statLabel}>{m.startingBalance}</Text>
                 <Text style={statValue}>{tokenBalance} tokens</Text>
               </div>
             </div>
@@ -159,11 +164,10 @@ export function RegistrationConfirmationEmail({
               }}
             >
               <Text style={{ color: colors.ink, fontSize: "14px", fontWeight: 800, margin: "0 0 14px" }}>
-                Account details
+                {m.accountDetails}
               </Text>
               <Text style={{ color: colors.slate, fontSize: "15px", lineHeight: "1.7", margin: 0 }}>
-                This is a transactional confirmation that your account has been created.
-                Use the button below to open your dashboard.
+                {m.transactional}
               </Text>
             </div>
 
@@ -180,13 +184,13 @@ export function RegistrationConfirmationEmail({
                   textDecoration: "none",
                 }}
               >
-                Open dashboard
+                {m.dashboard}
               </Button>
             </div>
 
             <Hr style={{ borderColor: colors.line, margin: "0 0 18px" }} />
             <Text style={{ color: colors.slate, fontSize: "13px", lineHeight: "1.7", margin: 0 }}>
-              If this registration was not made by you, contact {supportEmail} as soon as possible.
+              {formatMessage(m.footer, { email: supportEmail })}
             </Text>
           </Section>
 

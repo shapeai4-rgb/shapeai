@@ -1,4 +1,5 @@
 import type { Currency, PlanType } from "@/lib/tokenCalculator";
+import { normalizeLocale, type Locale } from "@/i18n/config";
 
 const REFERENCE_PREFIX = "shapeai-topup:";
 
@@ -8,6 +9,7 @@ export type TopUpReferencePayload = {
   planName: string;
   amount: number;
   currency: Currency;
+  locale?: Locale;
   nonce: string;
 };
 
@@ -37,7 +39,10 @@ export function parseTopUpReference(referenceId: string) {
       return null;
     }
 
-    return parsed as TopUpReferencePayload;
+    return {
+      ...parsed,
+      locale: normalizeLocale(parsed.locale),
+    } as TopUpReferencePayload;
   } catch {
     return null;
   }

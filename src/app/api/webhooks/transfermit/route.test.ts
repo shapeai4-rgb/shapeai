@@ -2,45 +2,43 @@ import crypto from "crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTopUpReference } from "@/lib/top-up-reference";
 
-const completeTopUpMock = vi.fn();
+const processTransfermitPaymentMock = vi.fn();
 
-vi.mock("@/lib/top-up", () => ({
-  completeTopUp: completeTopUpMock,
+vi.mock("@/lib/top-up-order", () => ({
+  processTransfermitPayment: processTransfermitPaymentMock,
 }));
 
 describe("POST /api/webhooks/transfermit", () => {
   beforeEach(() => {
     vi.resetModules();
+    processTransfermitPaymentMock.mockReset();
     process.env.TRANSFERMIT_WEBHOOK_SECRET = "webhook_secret";
   });
 
-  it("credits tokens and triggers invoicing only for successful payments", async () => {
-    completeTopUpMock.mockResolvedValue({
-      delivery: { sent: true, messageId: "invoice_123" },
-      duplicate: false,
-      externalRef: "transfermit:payment_123",
-      newBalance: 220,
-      tokensAdded: 210,
-      transactionId: "tx_123",
+  it("processes documented raw COMPLETED callbacks", async () => {
+    processTransfermitPaymentMock.mockResolvedValue({
+      gatewayState: "COMPLETED",
+      normalizedState: "completed",
+      orderId: "order_123",
+      paymentId: "payment_123",
+      referenceId: "reference_123",
     });
 
     const { POST } = await import("./route");
     const referenceId = createTopUpReference({
       amount: 19,
-      currency: "EUR",
-      nonce: "nonce_123",
-      planName: "Standard",
-      planType: "standard",
-      userId: "user_1",
-    });
-    const payload = JSON.stringify({
-      payment: {
-        amount: 19,
         currency: "EUR",
-        id: "payment_123",
-        referenceId,
-        state: "SUCCESS",
-      },
+        nonce: "nonce_123",
+        planName: "Standard",
+        planType: "standard",
+        userId: "user_1",
+      });
+    const payload = JSON.stringify({
+      amount: 19,
+      currency: "EUR",
+      id: "payment_123",
+      referenceId,
+      state: "COMPLETED",
     });
     const signature = crypto.createHmac("sha256", process.env.TRANSFERMIT_WEBHOOK_SECRET!).update(payload).digest("hex");
 
@@ -48,29 +46,35 @@ describe("POST /api/webhooks/transfermit", () => {
       new Request("http://localhost/api/webhooks/transfermit", {
         body: payload,
         headers: {
-          "x-transfermit-signature": signature,
+          Signature: signature,
         },
         method: "POST",
       })
     );
 
     expect(response.status).toBe(200);
-    expect(completeTopUpMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        externalRef: "transfermit:payment_123",
-        planName: "Standard",
-        planType: "standard",
-        source: "transfermit",
-        userId: "user_1",
-      })
+    expect(processTransfermitPaymentMock).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "payment_123", referenceId, state: "COMPLETED" }),
+      { trigger: "webhook" }
     );
+    await expect(response.json()).resolves.toMatchObject({ ok: true, status: "completed" });
   });
 
-  it("ignores non-success payment states", async () => {
+  it("passes PENDING states to the shared processor without completing in the route", async () => {
+    processTransfermitPaymentMock.mockResolvedValue({
+      gatewayState: "PENDING",
+      normalizedState: "pending",
+      orderId: "order_123",
+      paymentId: "payment_123",
+      referenceId: "reference_123",
+    });
+
     const { POST } = await import("./route");
     const payload = JSON.stringify({
       payment: {
-        state: "DECLINED",
+        id: "payment_123",
+        referenceId: "reference_123",
+        state: "PENDING",
       },
     });
     const signature = crypto.createHmac("sha256", process.env.TRANSFERMIT_WEBHOOK_SECRET!).update(payload).digest("hex");
@@ -86,6 +90,9 @@ describe("POST /api/webhooks/transfermit", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(completeTopUpMock).not.toHaveBeenCalled();
+    expect(processTransfermitPaymentMock).toHaveBeenCalledWith(
+      expect.objectContaining({ state: "PENDING" }),
+      { trigger: "webhook" }
+    );
   });
 });

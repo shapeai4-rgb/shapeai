@@ -5,6 +5,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Coins, TrendingUp, Calendar, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useI18n } from '@/i18n/client';
 
 interface CostBreakdown {
   baseGeneration: number;
@@ -31,6 +32,7 @@ export function CostDisplay({
   canGenerate, 
   isLoading = false 
 }: CostDisplayProps) {
+  const { messages, t } = useI18n();
   const [isExpanded, setIsExpanded] = useState(false);
   const [animatedCost, setAnimatedCost] = useState(totalCost);
 
@@ -61,8 +63,8 @@ export function CostDisplay({
             <Coins className="relative size-4 text-accent" />
           </div>
           <div>
-            <h3 className="font-headings font-semibold text-neutral-ink">Generation Cost</h3>
-            <p className="text-sm text-neutral-slate">Total tokens required</p>
+            <h3 className="font-headings font-semibold text-neutral-ink">{messages.cost.generationCost}</h3>
+            <p className="text-sm text-neutral-slate">{messages.cost.totalRequired}</p>
           </div>
         </div>
         
@@ -70,7 +72,7 @@ export function CostDisplay({
           onClick={() => setIsExpanded(!isExpanded)}
           className="flex items-center gap-2 text-sm text-accent hover:text-accent/80 transition-colors"
         >
-          <span>{isExpanded ? 'Hide' : 'Show'} breakdown</span>
+          <span>{isExpanded ? messages.cost.hide : messages.cost.show} {messages.cost.breakdown}</span>
           <motion.div
             animate={{ rotate: isExpanded ? 180 : 0 }}
             transition={{ duration: 0.2 }}
@@ -83,7 +85,7 @@ export function CostDisplay({
       {/* Общая стоимость */}
       <div className="mb-4">
         <div className="flex items-center justify-between">
-          <span className="text-lg font-medium text-neutral-ink">Total Cost</span>
+          <span className="text-lg font-medium text-neutral-ink">{messages.cost.totalCost}</span>
           <motion.div
             key={animatedCost}
             initial={{ scale: 1.1, color: '#10b981' }}
@@ -94,7 +96,7 @@ export function CostDisplay({
             {isLoading ? (
               <div className="h-8 w-16 bg-neutral-lines/20 rounded animate-pulse" />
             ) : (
-              `${animatedCost} tokens`
+              `${animatedCost} ${messages.common.tokens}`
             )}
           </motion.div>
         </div>
@@ -111,7 +113,7 @@ export function CostDisplay({
               <div className="flex items-center gap-2 text-red-700">
                 <div className="size-4 rounded-full bg-red-500" />
                 <span className="text-sm font-medium">
-                  Insufficient tokens. Need {totalCost - userBalance} more.
+                  {t(messages.cost.needMore, { count: totalCost - userBalance })}
                 </span>
               </div>
             </motion.div>
@@ -133,10 +135,10 @@ export function CostDisplay({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TrendingUp className="size-4 text-neutral-slate" />
-                <span className="text-sm text-neutral-slate">Base generation</span>
+                <span className="text-sm text-neutral-slate">{messages.cost.baseGeneration}</span>
               </div>
               <span className="text-sm font-medium text-neutral-ink">
-                {breakdown.baseGeneration} tokens
+                {breakdown.baseGeneration} {messages.common.tokens}
               </span>
             </div>
 
@@ -144,10 +146,10 @@ export function CostDisplay({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Calendar className="size-4 text-neutral-slate" />
-                <span className="text-sm text-neutral-slate">Days</span>
+                <span className="text-sm text-neutral-slate">{messages.cost.days}</span>
               </div>
               <span className="text-sm font-medium text-neutral-ink">
-                {breakdown.daysCost} tokens
+                {breakdown.daysCost} {messages.common.tokens}
               </span>
             </div>
 
@@ -155,9 +157,9 @@ export function CostDisplay({
             {additionalOptionsTotal > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-neutral-slate">Additional options</span>
+                  <span className="text-sm font-medium text-neutral-slate">{messages.cost.additionalOptions}</span>
                   <span className="text-sm font-medium text-neutral-ink">
-                    {additionalOptionsTotal} tokens
+                    {additionalOptionsTotal} {messages.common.tokens}
                   </span>
                 </div>
                 <div className="ml-4 space-y-1">
@@ -171,7 +173,7 @@ export function CostDisplay({
                     >
                       <span className="text-xs text-neutral-slate">{option.name}</span>
                       <span className="text-xs font-medium text-neutral-ink">
-                        +{option.cost} tokens
+                        +{option.cost} {messages.common.tokens}
                       </span>
                     </motion.div>
                   ))}

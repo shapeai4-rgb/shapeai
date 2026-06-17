@@ -9,15 +9,17 @@ import { Button } from '@/components/ui/Button';
 import { Drawer } from '@/components/ui/Drawer';
 import { StaggeredFadeIn, itemVariants } from '@/components/ui/StaggeredFadeIn';
 import { motion } from 'framer-motion';
+import { useI18n } from '@/i18n/client';
 
 // ★★★ Компонент теперь принимает реальные данные плана ★★★
 export default function PlanClient({ planId, plan }: { planId: string, plan: MealPlanData }) {
   const [shoppingListOpen, setShoppingListOpen] = useState(false);
+  const { messages, t } = useI18n();
 
   // Получаем данные для первого дня для отображения
   const firstDay = plan.days[0];
   if (!firstDay) {
-    return <div>Error: Plan data is incomplete.</div>;
+    return <div>{messages.plan.incomplete}</div>;
   }
 
   return (
@@ -26,12 +28,12 @@ export default function PlanClient({ planId, plan }: { planId: string, plan: Mea
         <motion.div variants={itemVariants} className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-headings font-semibold">
-              {plan.title} - Day {firstDay.day}
+              {plan.title} - {messages.common.day} {firstDay.day}
             </h1>
-            <p className="text-sm text-neutral-slate mt-1">Below is a preview for the first day of your plan.</p>
+            <p className="text-sm text-neutral-slate mt-1">{messages.plan.previewLead}</p>
           </div>
           <Link href="/dashboard">
-            <Button className="bg-neutral-mist text-neutral-ink hover:bg-neutral-lines">Return to Dashboard</Button>
+            <Button className="bg-neutral-mist text-neutral-ink hover:bg-neutral-lines">{messages.plan.returnDashboard}</Button>
           </Link>
         </motion.div>
 
@@ -47,10 +49,10 @@ export default function PlanClient({ planId, plan }: { planId: string, plan: Mea
               </div>
             </div>
             <div>
-              <h2 className="text-lg font-headings font-semibold">{firstDay.summary.kcal} kcal total</h2>
-              <p className="text-xs text-neutral-slate">Target: {plan.targets.daily_kcal} kcal</p>
+              <h2 className="text-lg font-headings font-semibold">{t(messages.plan.totalKcal, { count: firstDay.summary.kcal })}</h2>
+              <p className="text-xs text-neutral-slate">{messages.plan.target}: {plan.targets.daily_kcal} kcal</p>
               <div className="mt-2 text-xs">
-                P: {firstDay.summary.protein_g}g · F: {firstDay.summary.fat_g}g · C: {firstDay.summary.carbs_g}g
+                {messages.common.protein}: {firstDay.summary.protein_g}g · {messages.common.fat}: {firstDay.summary.fat_g}g · {messages.common.carbs}: {firstDay.summary.carbs_g}g
               </div>
             </div>
           </div>
@@ -75,15 +77,15 @@ export default function PlanClient({ planId, plan }: { planId: string, plan: Mea
 
         <motion.div variants={itemVariants} className="mt-8 flex flex-wrap items-center gap-4">
           <a href={`/api/plan/${planId}/pdf`} download>
-            <Button as="span" className="px-6 py-3 text-base">Download 7-day PDF</Button>
+            <Button as="span" className="px-6 py-3 text-base">{messages.plan.download7DayPdf}</Button>
           </a>
-          <Button onClick={() => setShoppingListOpen(true)} className="bg-neutral-mist text-neutral-ink hover:bg-neutral-lines px-6 py-3 text-base">Open shopping list</Button>
-          <span className="text-sm text-neutral-slate">QR in the PDF links to your live plan.</span>
+          <Button onClick={() => setShoppingListOpen(true)} className="bg-neutral-mist text-neutral-ink hover:bg-neutral-lines px-6 py-3 text-base">{messages.plan.openShoppingList}</Button>
+          <span className="text-sm text-neutral-slate">{messages.plan.qrHelp}</span>
         </motion.div>
       </StaggeredFadeIn>
 
-      <Drawer open={shoppingListOpen} onClose={() => setShoppingListOpen(false)} title="Shopping List">
-        <p>Your aggregated shopping list will appear here.</p>
+      <Drawer open={shoppingListOpen} onClose={() => setShoppingListOpen(false)} title={messages.common.shoppingList}>
+        <p>{messages.common.shoppingList}</p>
       </Drawer>
     </main>
   );
